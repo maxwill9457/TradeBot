@@ -1,5 +1,7 @@
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -38,6 +40,8 @@ public class TradeUnit extends DefinedData  {
 	TradeOperatorUnit TradeOperator; //交易股票的所有網業開啟 
 	CatchException TradeOperator_catchException;
 	
+	BufferedReader FileDataBuffer; 
+	
 	WriteLog WriteLog; // 定期的にlogを記載するルーチン
 	
 	LogUnit TradeLog;  // Trade operation log
@@ -53,7 +57,7 @@ public class TradeUnit extends DefinedData  {
 	//int StartTime 	= 0;
 	//int EndTime		= 30000;
 	
-	TradeUnit(String target,String SimulationMode,int Speed, String LogPath){
+	TradeUnit(String target,String SimulationMode,int Speed, String LogPath,String Infofile){
 		
 		String SubProcessName = "Initiation";
 		TradeUnitState = "PREPARE";
@@ -65,6 +69,10 @@ public class TradeUnit extends DefinedData  {
 			
 		try{
 			TradeData = new DefinedData();
+			
+			FileDataBuffer = new BufferedReader(new FileReader(Infofile)); //9用確認
+			TradeData.UserProperty.USER_NAME	=	FileDataBuffer.readLine();
+			TradeData.UserProperty.PASSWORD		=	FileDataBuffer.readLine();
 		
 			if (SimulationMode.equals("TEST_DATA_SIMULATION")||SimulationMode.equals("OFFLINE_SIMULATUION")){ //モードによりログの記録を変更
 				//String Path = "D://invest//project//Trade_Bot_20160106//TradeBot//log//";
@@ -89,6 +97,7 @@ public class TradeUnit extends DefinedData  {
 			// web系情報取得
 			WebAccess = new WebAccessUnit(	this.target,
 											TradeData.BoardInfo,
+											TradeData.UserProperty,
 											ErrorLog,
 											this.SimulationMode,
 											LogPath,

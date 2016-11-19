@@ -273,7 +273,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		void TradeOrderPageOpen(WebDriver driver_order){
 			String SubProcessName = "TradeOrder_PageOpen ";
 			driver_order.get(ADDRESS);
-			Login(driver_order, USER_NAME, PASSWORD);	
+			Login(driver_order, UserProperty.USER_NAME, UserProperty.PASSWORD);	
 		}
 		void ChangeCheck(){//TradeMonitoringUnitの状態確認
 			String SubProcessName = "TradeOrder_ChangeCheck ";
@@ -416,7 +416,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		void TradeMonitorPageOpen(WebDriver driver_monitor){
 			String SubProcessName = "TradeMonitor_PageOpen ";
 			driver_monitor.get(ADDRESS);
-			Login(driver_monitor, USER_NAME, PASSWORD);	
+			Login(driver_monitor, UserProperty.USER_NAME, UserProperty.PASSWORD);	
 
 		}
 		void StateCheck(){//TradeMonitoringUnitの状態確認
@@ -453,7 +453,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 				
 	}
 	
-	void Login(WebDriver driver, String user_name, String password) {	
+	void Login(WebDriver driver,String user_name, String password) {	
 		//---------------------Login ------------------------------------------------------
 			driver.findElement(By.name("loginid")).sendKeys(user_name);
 			driver.findElement(By.name("passwd")).sendKeys(password);

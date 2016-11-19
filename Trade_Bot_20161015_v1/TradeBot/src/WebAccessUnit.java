@@ -13,6 +13,10 @@ public class WebAccessUnit extends DefinedData {
 	
 	String WebAccessUnitState;
 	String target;
+	
+	BoardInfo BoardInfo;
+	UserProperty UserProperty;
+	
 	TradePageManagerUnit_Monex TradePageManager; //交易股票的所有網業開啟 
 	CatchException TradePageManager_catchException;
 	
@@ -25,7 +29,7 @@ public class WebAccessUnit extends DefinedData {
 	LogUnit  ErrorLog;
 	
 	
-	WebAccessUnit(String target, BoardInfo BoardInfo,LogUnit ErrorLog,String SimulationMode, String LogPath,int Speed){ //initialization
+	WebAccessUnit(String target, BoardInfo BoardInfo,UserProperty UserProperty, LogUnit ErrorLog,String SimulationMode, String LogPath,int Speed){ //initialization
 		//1秒截取數據一次
 		String SubProcessName = "Initiation";
 		WebAccessUnitState = "PREPARE";
@@ -53,6 +57,7 @@ public class WebAccessUnit extends DefinedData {
 			}else{
 				TradePageManager = new TradePageManagerUnit_Monex(	target, 
 																	BoardInfo,
+																	UserProperty,
 																	this.ErrorLog,
 																	SimulationMode,
 																	LogPath);

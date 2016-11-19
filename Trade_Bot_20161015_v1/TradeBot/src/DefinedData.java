@@ -8,10 +8,8 @@ public class DefinedData extends Thread{
 	UserProperty UserProperty = new UserProperty();
 	TradeStatics TradeStatics = new TradeStatics();
 
-	String USER_NAME = "XXXXXX";
-	String PASSWORD = "XXXXXX";
-
 	public class BoardInfo{
+
 		
 		int DataNumber = 0;
 		int PreDataNumber = 0;
@@ -42,6 +40,9 @@ public class DefinedData extends Thread{
 	}
 	
 	public class UserProperty{
+		String USER_NAME ;
+		String PASSWORD ;
+		
 		BigDecimal cash = new BigDecimal(1000000.0);	//所持現金
 		BigDecimal NetGain = new BigDecimal(0.0);	//損益
 		BigDecimal cost;			//手数料	

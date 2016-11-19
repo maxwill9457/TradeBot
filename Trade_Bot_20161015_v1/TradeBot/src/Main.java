@@ -10,6 +10,7 @@ public class Main {
 	static int StartTime = 0;
 	static int EndTime   = 240000;
 	static String MeigaraName = "シャープ";
+	static String Infofile =  "D://invest//project//info.txt";
 	static String LogPath = "D://invest//project//log";
 	static String SimulationMode = "OFFLINE_SIMULATUION";  	//ONLINE                real data and operation
     														//OPERATION_SIMULATION  real data but no actual operation execute 
@@ -30,10 +31,10 @@ public class Main {
 		}
 		TradeUnit TradeUnit1;
 		if(SimulationMode.equals("ONLINE")){
-			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"//") ; //啟動新的股票交易單元
+			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"//",Infofile) ; //啟動新的股票交易單元
 		}
 		else{
-			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//") ; //啟動新的股票交易單元
+			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//",Infofile) ; //啟動新的股票交易單元
 		}
 		CatchException TradeUnit1_catchException = new CatchException();
 		TradeUnit1.setName("Thread-TradeUnit1");
@@ -60,10 +61,10 @@ public class Main {
 				if (TradeUnit1== null){
 
 					if(SimulationMode.equals("ONLINE")){
-						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath) ; //啟動新的股票交易單元
+						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath,Infofile) ; //啟動新的股票交易單元
 					}
 					else{
-						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//") ; //啟動新的股票交易單元
+						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//",Infofile) ; //啟動新的股票交易單元
 					}
 					TradeUnit1_catchException = new CatchException();
 					TradeUnit1.setName("Thread-TradeUnit1");

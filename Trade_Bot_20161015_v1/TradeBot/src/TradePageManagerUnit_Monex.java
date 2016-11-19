@@ -38,6 +38,8 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	BoardInfo BoardInfo;
 	BoardInfo TempBoardInfo; 
 	
+	UserProperty UserProperty;
+	
 	LogUnit ExtractedLog;  // Trade operation log
 	LogUnit ErrorLog;
 	
@@ -62,7 +64,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	//------------------------------------------------------------------
 	ShowMeigaraTable ShowMeigaraTable;
 		
-	TradePageManagerUnit_Monex(String target,BoardInfo BoardInfo,LogUnit ErrorLog,String SimulationMode,String LogPath){  // initialization
+	TradePageManagerUnit_Monex(String target,BoardInfo BoardInfo,UserProperty UserProperty,LogUnit ErrorLog,String SimulationMode,String LogPath){  // initialization
 		
 		String SubProcessName 		= "Initiation";
 		TradePageManagerUnitState 	= "PREPARE";
@@ -71,6 +73,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 		this.SimulationMode = SimulationMode;
 		this.target 	= target;
 		this.BoardInfo 	= BoardInfo;
+		this.UserProperty = UserProperty;
 		this.ErrorLog 	= ErrorLog;
 		try{
 			TempBoardInfo = new BoardInfo();
@@ -248,9 +251,9 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	void MarketBoardOpen(String target){
 	//---------------------信用買画面------------------------------------------------------
 		driver_board.get(ADDRESS);
-		Login(driver_board, USER_NAME, PASSWORD);
+		Login(driver_board, UserProperty.USER_NAME,UserProperty.PASSWORD);
 		driver_attribute.get(ADDRESS);//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
-		Login(driver_attribute, USER_NAME, PASSWORD);//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
+		Login(driver_attribute, UserProperty.USER_NAME, UserProperty.PASSWORD);//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
 		//---------------------turn to stock page----------------------
 		driver_board.findElement(By.linkText("マーケットボード")).click();
 		driver_attribute.findElement(By.linkText("マーケットボード")).click();//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
@@ -275,7 +278,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 		//----------------------------------------------------------------------------------
 	}	
 	
-	void Login(WebDriver driver, String user_name, String password) {	
+	void Login(WebDriver driver,String user_name, String password ) {	
 		//---------------------Login ------------------------------------------------------
 			driver.findElement(By.name("loginid")).sendKeys(user_name);
 			driver.findElement(By.name("passwd")).sendKeys(password);
