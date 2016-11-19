@@ -1,0 +1,154 @@
+
+import java.io.*;
+import java.lang.Thread.UncaughtExceptionHandler;
+
+
+
+public class Main {
+
+
+	public static void main(String[] args) {
+		
+		//System.out.println( "Select Mode" );
+		//System.out.println( "1. Normal Mode" );
+		//System.out.println( "2. Simulation Mode" );
+		/*
+		InputStreamReader in = new InputStreamReader(System.in);
+		BufferedReader reader = new BufferedReader(in);
+		String line;
+		try{
+			 line= reader.readLine();
+		}catch (IOException e){
+		}	
+		
+		switch(line){
+		case "1": // Normal Mode
+			break;
+		case "2": // Simulation Mode
+			break;
+		
+		try{
+			Thread.sleep(1);
+		}catch (InterruptedException e){
+		}
+		}	
+		*/
+
+		class CatchException implements UncaughtExceptionHandler {
+			public void uncaughtException(Thread t, Throwable e) {
+				System.out.println(t.getName());
+			}
+		}
+		
+		
+		TradeUnit TradeUnit1 = new TradeUnit("ジグソー") ; //啟動新的股票交易單元
+		CatchException TradeUnit1_catchException;
+		TradeUnit1_catchException = new CatchException();
+		TradeUnit1.setName("Thread-TradeUnit1");
+		TradeUnit1.setUncaughtExceptionHandler(TradeUnit1_catchException);
+		
+		while(!TradeUnit1.TradeUnitState.equals("READY")){
+			try{
+				Thread.sleep(1);
+			}catch (InterruptedException e){
+			}	
+		}
+		//System.out.println( "TradeUnit1 start" );
+		TradeUnit1.start();
+		/*
+		TradeUnit TradeUnit2 = new TradeUnit("サイジニア") ; //啟動新的股票交易單元
+		CatchException TradeUnit2_catchException;
+		TradeUnit2_catchException = new CatchException();
+		TradeUnit2.setName("Thread-TradeUnit2");
+		TradeUnit2.setUncaughtExceptionHandler(TradeUnit2_catchException);
+		
+		while(!TradeUnit2.TradeUnitState.equals("READY")){
+			try{
+				Thread.sleep(1);
+			}catch (InterruptedException e){
+			}	
+		}
+		TradeUnit2.start();
+		
+		TradeUnit TradeUnit3 = new TradeUnit("FFRI") ; //啟動新的股票交易單元
+		CatchException TradeUnit3_catchException;
+		TradeUnit3_catchException = new CatchException();
+		TradeUnit3.setName("Thread-TradeUnit3");
+		TradeUnit3.setUncaughtExceptionHandler(TradeUnit3_catchException);
+		
+		while(!TradeUnit3.TradeUnitState.equals("READY")){
+			try{
+				Thread.sleep(1);
+			}catch (InterruptedException e){
+			}	
+		}
+		TradeUnit3.start();
+		
+		TradeUnit TradeUnit4 = new TradeUnit("テラスカイ") ; //啟動新的股票交易單元
+		CatchException TradeUnit4_catchException;
+		TradeUnit4_catchException = new CatchException();
+		TradeUnit4.setName("Thread-TradeUnit4");
+		TradeUnit4.setUncaughtExceptionHandler(TradeUnit4_catchException);
+		
+		while(!TradeUnit4.TradeUnitState.equals("READY")){
+			try{
+				Thread.sleep(1);
+			}catch (InterruptedException e){
+			}	
+		}
+		TradeUnit4.start();
+		
+		TradeUnit TradeUnit5 = new TradeUnit("エムケイシステム") ; //啟動新的股票交易單元
+		CatchException TradeUnit5_catchException;
+		TradeUnit5_catchException = new CatchException();
+		TradeUnit5.setName("Thread-TradeUnit5");
+		TradeUnit5.setUncaughtExceptionHandler(TradeUnit5_catchException);
+		
+		while(!TradeUnit5.TradeUnitState.equals("READY")){
+			try{
+				Thread.sleep(1);
+			}catch (InterruptedException e){
+			}	
+		}
+		TradeUnit5.start();
+		/*
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+	       
+	    System.out.println("ENTERキーを押してください");
+	    try{
+	    	 System.in.read();
+	    }catch(Exception e){
+	    	 e.printStackTrace();
+	    }
+	    TradeUnit1.TradeUnitState ="FINISH"; 
+	    TradeUnit2.TradeUnitState ="FINISH"; 
+	    TradeUnit3.TradeUnitState ="FINISH";  
+	    TradeUnit4.TradeUnitState ="FINISH"; 
+	    TradeUnit5.TradeUnitState ="FINISH"; 
+	     */
+		while(!TradeUnit1.TradeUnitState.equals("END") ){ //Wait for being triggered 
+			try{
+				Thread.sleep(1000);
+			}catch (InterruptedException e){
+			}
+		}
+		/*
+		
+		while(!TradeUnit5.TradeUnitState.equals("END") &&
+				!TradeUnit4.TradeUnitState.equals("END") &&
+				!TradeUnit3.TradeUnitState.equals("END") &&
+				!TradeUnit2.TradeUnitState.equals("END") &&
+				!TradeUnit1.TradeUnitState.equals("END") ){ //Wait for being triggered 
+			try{
+				Thread.sleep(1000);
+			}catch (InterruptedException e){
+			}
+		}
+		//*/
+		System.out.println("Main END");
+		
+	}	
+}
+		
+
+	

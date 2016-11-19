@@ -1,0 +1,299 @@
+import java.util.*;
+
+import javax.swing.JFrame;
+
+import java.text.*;
+import org.jfree.ui.RefineryUtilities;
+
+public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情報により、買、維持、売の行動　また価格を決める
+	
+	String ProcessName = "DecisionMakingUnit";
+	String SimulationMode;
+	int Speed;
+	String DecisionMakingUnitState;
+	String target;
+	String LogPath;
+	
+	BoardInfo BoardInfo;
+	UserProperty UserProperty;
+	TradeStatics TradeStatics;
+	
+	MindModuleUnit MindModule;
+	
+	ShowMeigaraTimechart ShowMeigaraTimechart;
+	
+	
+	LogUnit StaticsLog; // create statics log file
+	LogUnit DailyLog;
+	
+	
+	DecisionMakingUnit(String target,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,String SimulationMode,String LogPath, int Speed){
+		DecisionMakingUnitState = "PREPARE";
+		System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Activating" );
+
+		this.SimulationMode = SimulationMode;
+		this.Speed = Speed;
+		this.target = target;
+		this.LogPath = LogPath;
+		this.BoardInfo = BoardInfo;
+		this.UserProperty = UserProperty;
+		this.TradeStatics = TradeStatics;
+		//MindModule = new MindModuleUnit(target,BoardInfo,UserProperty,TradeStatics);
+		
+		StaticsLog = new LogUnit(LogPath, this.target+"_Statics",1); // create statics log file
+		
+		DailyLog = new LogUnit(LogPath, this.target+"_Daily",0); // create log file to record MindModule result
+		//ActionDecisionLog = new LogUnit(this.target); // create log file to record ActionDecision result
+		
+		
+		ShowMeigaraTimechart = new ShowMeigaraTimechart(target+"タイムチャート" ,this.BoardInfo.Date,this.BoardInfo.BoardTime );
+		ShowMeigaraTimechart.pack();
+		RefineryUtilities.centerFrameOnScreen(ShowMeigaraTimechart);
+		ShowMeigaraTimechart.setVisible(true);
+		
+		DecisionMakingUnitState = "READY";
+		System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Ready" );	
+	}
+		
+	public void run(){ 
+		System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Standby" );
+		String PreState = DecisionMakingUnitState;
+		String PreTime ="0";
+		
+		while(!DecisionMakingUnitState.equals("END")){
+			switch(DecisionMakingUnitState){
+			
+			case "READY":
+				//System.out.println( "DecisionMakingUnit READY");
+				break;	
+			case "START":	
+				if (PreState.equals("READY")){
+					//初回のプロセスの起動に使う
+					PreState = DecisionMakingUnitState;
+					System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start" );
+				}	
+				
+				//------------------renew----------------------
+				//float value = StaticsAnalyze();
+				try{
+					synchronized (BoardInfo.BoardInfoLock){
+						if ( !BoardInfo.Price.equals(null) ){
+							
+							StaticsAnalyze();//市場状況、分析用数値の計算
+							
+							if(PreTime.equals("0")){
+								PreTime = BoardInfo.BoardTime;
+								System.out.println("TimechartRenew initial time stamp");
+								ShowMeigaraTimechart.TimechartRenew(TradeStatics.PresentPrice,
+										TradeStatics.PriceChange_Online_Avg + TradeStatics.PriceOpen,
+										BoardInfo.Date,
+										BoardInfo.BoardTime);
+								
+							}
+							else if (!PreTime.equals(BoardInfo.BoardTime)) {
+								System.out.println("value"+TradeStatics.PresentPrice);
+								ShowMeigaraTimechart.TimechartRenew(TradeStatics.PresentPrice,
+																	TradeStatics.PriceChange_Online_Avg + TradeStatics.PriceOpen,
+																	BoardInfo.Date,
+																	BoardInfo.BoardTime);
+								PreTime = BoardInfo.BoardTime;
+								System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Decision Start");
+							
+							}
+							
+						}else{
+							System.out.println("off");
+						}
+					}
+				}catch (Exception e){
+					System.out.println(e +" DecisionMark");
+				}
+				//------------------validate-------------------
+				
+				//MindModule.MindModule();
+				
+				//------------------action--------------------- 
+				
+				//System.out.println( "DecisionMakingUnit START");
+				break;
+			case "PAUSE":
+				//System.out.println( "DecisionMakingUnit PAUSE");
+				break;
+			case "FINISHING":
+				//---------------気配板プロセスの完了待つ-----------------------------	
+				/*while(!XXXX.equals("END")){
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}
+				}*/
+				
+				DaliyLogWrite(); // 一日の株結果を記録
+				String TempDate = BoardInfo.Date.replaceAll("/", "");
+				ShowMeigaraTimechart.TimechartSave(LogPath,target+"_"+TempDate); // 株遷移図を記録
+				ShowMeigaraTimechart.dispose();
+				ShowMeigaraTimechart = null;
+						
+				System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Finish");
+				DecisionMakingUnitState = "END";
+				break;
+			case "ERROR":	
+				//System.out.println( "DecisionMakingUnit ERROR");
+				break;
+				
+			}	
+			try{
+				Thread.sleep(1000);
+			}catch (InterruptedException e){
+			}	
+		}	
+		System.out.println(target+ "	"+ProcessName+"_"+"End" );
+		//start any web access process 
+		//Environment_Validation();
+	}
+	
+	class PropertyManager extends DefinedData{
+		
+		
+	}
+
+	public float StaticsAnalyze(){
+		//情報の統計処理
+		StockTreand();
+		MarketTrend();
+		TradeBoardTrend();
+		
+		Random rnd = new Random();
+		int ran = rnd.nextInt(10);
+		
+		if (ran >9){ //買		
+		}
+		else if(ran <1){//売り	
+		}
+		
+		return ran;
+	}
+	public void StockTreand(){
+		//株状態識別　ストップ高　ストップ安　株高　株安
+		String tempPrice = BoardInfo.Price.replaceAll(",", ""); //現愛の株価
+		TradeStatics.PresentPrice = Float.valueOf(tempPrice); // 計算のためString からintに変換
+		
+		String tempPriceChange = BoardInfo.NetChange.replaceAll(",", ""); //株価上昇落下価格
+		TradeStatics.PresentPriceChange = Float.valueOf(tempPriceChange); 
+		
+		String tempMarketOpen = BoardInfo.MarketOpen.replaceAll(",", ""); // 計算のためString からintに変換
+		TradeStatics.MarketOpen = Double.valueOf(tempMarketOpen);   //開場日経平均
+		
+		String tempPriceOpen = BoardInfo.PriceOpen.replaceAll(",", "");
+		TradeStatics.PriceOpen = Double.valueOf(tempPriceOpen);  //開場株価格
+		
+		//-----------当日高値、低値-----------------
+		
+		if (TradeStatics.HighestPrice < TradeStatics.PresentPrice || TradeStatics.HighestPrice ==0){
+			TradeStatics.HighestPrice = TradeStatics.PresentPrice;  //最高値更新
+		}
+		if (TradeStatics.LowestPrice > TradeStatics.PresentPrice || TradeStatics.LowestPrice ==0){
+			TradeStatics.LowestPrice = TradeStatics.PresentPrice;	//最低値更新	
+		}
+		
+		//-----------異動平均------------------
+		if(TradeStatics.PriceChange_Online_Avg==0){ //中時間間隔平均
+			TradeStatics.PriceChange_Online_Avg = TradeStatics.PresentPriceChange;  // 値段変化平均値の初期値
+		}
+		else{
+			TradeStatics.PriceChange_Online_Avg = TradeStatics.PriceChange_Online_Avg*TradeStatics.PFactor 
+										+ TradeStatics.PresentPriceChange *(1 - TradeStatics.PFactor);
+		}
+		
+		
+		//-----------ストップ高判定------------------
+		if(TradeStatics.PresentPriceChange == BoardInfo.PriceRange){ //ストップ高かストップ安の判断  
+			BoardInfo.StockStatus = "Buy_Lock";
+		}
+		else if (-TradeStatics.PresentPriceChange == BoardInfo.PriceRange){
+			BoardInfo.StockStatus = "Sell_Lock";
+		}
+		else{
+			BoardInfo.StockStatus = "Trade_Avaliable";
+		}
+		//-----------株の変動状況-------------------
+		if(TradeStatics.PresentPriceChange > 0){ //ストップ高かストップ安の判断
+			TradeStatics.PriceTrend = "Rising";
+		}
+		else if (TradeStatics.PresentPriceChange < 0){
+			TradeStatics.PriceTrend = "Dropping";
+		}
+		else if(TradeStatics.PresentPriceChange == 0){
+			TradeStatics.PriceTrend = "Keeping";
+		}
+	}
+
+	public void MarketTrend(){
+		//市場平均変化率
+		String tempMarket = BoardInfo.Market.replaceAll(",", "");//現在の日経平均価格
+		TradeStatics.PresentMarket = Double.valueOf(tempMarket);// 計算のためString からintに変換	
+		
+		String tempMarketChange =  BoardInfo.MarketNetChange.replaceAll(",", ""); //日経平均の上昇落下価格
+		TradeStatics.PresentMarketChange = Double.valueOf(tempMarketChange); 
+		
+		if(TradeStatics.MarketChange_Online_Avg==0){ //中時間間隔平均
+			TradeStatics.MarketChange_Online_Avg = TradeStatics.PresentMarketChange; //平均値の初期化 
+		}
+		else{
+			TradeStatics.MarketChange_Online_Avg = TradeStatics.MarketChange_Online_Avg*TradeStatics.MFactor 
+										+ TradeStatics.PresentMarketChange *(1 - TradeStatics.PFactor);
+		}
+		
+		//-----------日経平均の変動状況-------------------
+		if(TradeStatics.PresentMarketChange > 0){ //ストップ高かストップ安の判断
+			TradeStatics.MarketTrend = "Rising";
+		}
+		else if (TradeStatics.PresentMarketChange < 0){
+			TradeStatics.MarketTrend = "Dropping";
+		}
+		else if (TradeStatics.PresentMarketChange == 0){
+			TradeStatics.MarketTrend = "Keeping";
+		}
+	}
+	
+	public void TradeBoardTrend(){
+	
+		for(int i = 0 ; i < 23; i++){
+			if(i == 0){  // 成り行き
+				String tempbuy = BoardInfo.Board[i][0].replaceAll(",", "");//現在の成り行き買
+				TradeStatics.NariyukiBuy = Float.valueOf(tempbuy);// 計算のためString からdoubleに変換
+				String tempSell = BoardInfo.Board[i][2].replaceAll(",", "");//現在の成り行き売り
+				TradeStatics.NariyukiSell = Float.valueOf(tempSell);// 計算のためString からdoubleに変換
+			}
+			else if(i == 1){
+				String tempOverSell = BoardInfo.Board[i][0].replaceAll(",", "");//現在の気配板の価格以上で売る人
+				TradeStatics.OverSell = Float.valueOf(tempOverSell);// 計算のためString からdoubleに変換
+				
+			}
+			else if(1 < i && i < 22  ){
+				for (int j = 0 ; j < 3 ; j++){
+				String	tempValue =  BoardInfo.Board[i][j].replaceAll(",", "");//現在のボード情報
+				TradeStatics.Board[i][j] =  Float.valueOf(tempValue);// 計算のためString からdoubleに変換
+				}
+				TradeStatics.BuyTrend = TradeStatics.BuyTrend + TradeStatics.Board[i][0];
+				TradeStatics.SellTrend = TradeStatics.SellTrend + TradeStatics.Board[i][2];
+			}
+			else if(i == 22){
+				String tempUnderBuy = BoardInfo.Board[i][2].replaceAll(",", "");//現在の気配板の価格以下で買う人
+				TradeStatics.UnderBuy = Float.valueOf(tempUnderBuy);// 計算のためString からdoubleに変換
+				
+			}				
+		}			
+	}
+
+
+	public void DaliyLogWrite(){
+		
+		String temp  = BoardInfo.Date + "	" +TradeStatics.PresentMarket + "	" 
+						+ TradeStatics.LowestPrice + "	" + TradeStatics.PresentPrice + "	" + TradeStatics.HighestPrice + "\n";
+		DailyLog.FileWrite(temp);
+	
+	}
+}
+
+

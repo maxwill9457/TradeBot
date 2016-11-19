@@ -1,0 +1,82 @@
+
+
+public class MindModuleUnit extends DefinedData{
+	
+	String ProcessName = "MindModuleUnit";
+	String SimulationMode;
+	String MindModuleUnitState;
+	String target;
+	
+	BoardInfo BoardInfo;
+	UserProperty UserProperty;
+	TradeStatics TradeStatics;
+	
+	MindModuleUnit(String target,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,String SimulationMode){
+		MindModuleUnitState = "PREPARE";
+		//---------------------------初期設定----------------------------------------
+		this.SimulationMode = SimulationMode;
+		this.target = target;
+		this.BoardInfo = BoardInfo;
+		this.UserProperty = UserProperty;
+		this.TradeStatics = TradeStatics;
+		
+		MindModuleUnitState = "READY";
+		
+		
+	}
+		
+	public void run(){ 
+		System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Standby" );
+		String PreState = MindModuleUnitState;
+		while(!MindModuleUnitState.equals("END")){
+			switch(MindModuleUnitState){
+			
+			case "READY":
+				//System.out.println( "DecisionMakingUnit READY");
+				break;	
+			case "START":	
+				if (PreState.equals("READY")){
+					//初回のプロセスの起動に使う
+					PreState = MindModuleUnitState;
+					System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start");
+				}	
+				
+				System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start");
+				break;
+			case "PAUSE":
+				//System.out.println( "DecisionMakingUnit PAUSE");
+				break;
+			case "FINISHING":
+				//---------------気配板プロセスの完了待つ-----------------------------	
+				/*while(!XXXX.equals("END")){
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}
+				}*/
+				//System.out.println( target+ "	"+ProcessName+"_"+"Finishing");
+				MindModuleUnitState = "END";
+				break;
+			case "ERROR":	
+				//System.out.println( target+ "	"+ProcessName+"_"+"Error");
+				break;
+				
+			}	
+			try{
+				Thread.sleep(500);
+			}catch (InterruptedException e){
+			}	
+		}		
+		//start any web access process 
+	}
+	
+	public void MindModule(){
+		
+	}
+	
+	
+	//public void EnvironmentValidation(){ }// 市場判断
+	//public void 
+	
+
+}

@@ -1,0 +1,110 @@
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Random;
+
+
+
+public class MindModuleUnit extends DefinedData{
+	
+	String ProcessName = "MindModuleUnit";
+	String SimulationMode;
+	String MindModuleUnitState;
+	String target;
+	
+	String TradeAction;
+	
+	BoardInfo BoardInfo;
+	UserProperty UserProperty;
+	TradeStatics TradeStatics;
+	
+	LogUnit ErrorLog;
+	
+	
+	Random rnd ;
+	
+	MindModuleUnit(String target,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode){
+		MindModuleUnitState = "PREPARE";
+		//---------------------------初期設定----------------------------------------
+		this.SimulationMode = SimulationMode;
+		this.target = target;
+		this.BoardInfo = BoardInfo;
+		this.UserProperty = UserProperty;
+		this.TradeStatics = TradeStatics;
+		
+		MindModuleUnitState = "READY";
+		
+		rnd = new Random();
+		
+		
+	}
+		
+	public void run(){ 
+		String SubProcessName = "Main_Loop ";
+		System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Standby" );
+		String PreState = MindModuleUnitState;
+		while(!MindModuleUnitState.equals("END")){
+			switch(MindModuleUnitState){
+			
+			case "READY":
+				//System.out.println( "DecisionMakingUnit READY");
+				break;	
+			case "START":	
+				if (PreState.equals("READY")){
+					//初回のプロセスの起動に使う
+					PreState = MindModuleUnitState;
+					
+
+					System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start"+"Action Score"+ UserProperty.UserAction.ActionScore);
+				}	
+				UserProperty.UserAction.ActionScore = rnd.nextInt(1000);	
+				
+				System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start");
+				break;
+			case "PAUSE":
+				//System.out.println( "DecisionMakingUnit PAUSE");
+				break;
+			case "FINISHING":
+				//---------------気配板プロセスの完了待つ-----------------------------	
+				/*while(!XXXX.equals("END")){
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}
+				}*/
+				//System.out.println( target+ "	"+ProcessName+"_"+"Finishing");
+				MindModuleUnitState = "END";
+				break;
+			case "ERROR":	
+				//System.out.println( target+ "	"+ProcessName+"_"+"Error");
+				break;
+				
+			}	
+			try{
+				Thread.sleep(500);
+			}catch (InterruptedException e){
+			}	
+		}		
+		//start any web access process 
+	}
+	
+	public void MindModule(){
+		
+	}
+	void ErrorLogWrite(String ProccessName, String SubProcessName , String Error){
+		Calendar rightNow;
+		Date Now = new Date();
+    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
+    	rightNow = Calendar.getInstance();
+		Now = rightNow.getTime();
+		
+		String temp =  D.format(Now) + "	" + ProccessName + "	" + SubProcessName + "	" +Error +"\r\n";
+		ErrorLog.FileWrite(temp);
+		
+	}
+	
+	//public void EnvironmentValidation(){ }// 市場判断
+	//public void 
+	
+
+}
