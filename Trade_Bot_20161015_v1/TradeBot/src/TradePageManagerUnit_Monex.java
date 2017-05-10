@@ -25,6 +25,8 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 
 	String ADDRESS = "https://www.monex.co.jp/Login/00000000/login/ipan_web/hyoji";
 	String target;
+	String target_num;
+	
 	FirefoxProfile profile_board = new FirefoxProfile(new File("D:\\temp"));  
 	FirefoxProfile profile_attribute = new FirefoxProfile(new File("D:\\temp")); 
 	//profile.setPreference("general.useragent.override", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
@@ -64,7 +66,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	//------------------------------------------------------------------
 	ShowMeigaraTable ShowMeigaraTable;
 		
-	TradePageManagerUnit_Monex(String target,BoardInfo BoardInfo,UserProperty UserProperty,LogUnit ErrorLog,String SimulationMode,String LogPath){  // initialization
+	TradePageManagerUnit_Monex(String target,String target_num,BoardInfo BoardInfo,UserProperty UserProperty,LogUnit ErrorLog,String SimulationMode,String LogPath){  // initialization
 		
 		String SubProcessName 		= "Initiation";
 		TradePageManagerUnitState 	= "PREPARE";
@@ -72,6 +74,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 		
 		this.SimulationMode = SimulationMode;
 		this.target 	= target;
+		this.target_num = target_num;
 		this.BoardInfo 	= BoardInfo;
 		this.UserProperty = UserProperty;
 		this.ErrorLog 	= ErrorLog;
@@ -79,7 +82,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 			TempBoardInfo = new BoardInfo();
 			ExtractedLog = new LogUnit(LogPath+"extract//",this.target+"_extracted",1); // create log file
 			
-			MarketBoardOpen(target);
+			MarketBoardOpen(target_num);
 			BoardInfoExtractor = new BoardInformationExtraction();
 			BoardInfoExtractor_catchException = new CatchException();
 			BoardInfoExtractor.setName("Thread-BoardInfoExtractor-"+target);
@@ -248,7 +251,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	}
 		
 	
-	void MarketBoardOpen(String target){
+	void MarketBoardOpen(String target_num){
 	//---------------------信用買画面------------------------------------------------------
 		driver_board.get(ADDRESS);
 		Login(driver_board, UserProperty.USER_NAME,UserProperty.PASSWORD);
@@ -263,8 +266,8 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 		}catch (InterruptedException e){
 		}	
 		
-		driver_board.findElement(By.xpath("//div[@id='xb-matrix']/div/div/div[4]/input")).sendKeys(target);
-		driver_attribute.findElement(By.xpath("//div[@id='xb-matrix']/div/div/div[4]/input")).sendKeys(target);//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
+		driver_board.findElement(By.xpath("//div[@id='xb-matrix']/div/div/div[4]/input")).sendKeys(target_num);
+		driver_attribute.findElement(By.xpath("//div[@id='xb-matrix']/div/div/div[4]/input")).sendKeys(target_num);//20161008追加　出来高取得とスレッド二本化による情報取得高速化---------------------
 		
 		try{
 			Thread.sleep(1000);
@@ -282,7 +285,7 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 		//---------------------Login ------------------------------------------------------
 			driver.findElement(By.name("loginid")).sendKeys(user_name);
 			driver.findElement(By.name("passwd")).sendKeys(password);
-			driver.findElement(By.xpath("//*[@value='ログイン']")).click();
+			driver.findElement(By.className("text-button")).click();
 		//---------------------------------------------------------------------------------
 	}
 	void PriceRangeReference(){
@@ -345,7 +348,9 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 					//System.out.println( target+ "	BoardInfoExtracted	start	"+(BoardInfoDataNumber+1)+"	" + TempBoardInfo.BoardTime );
 					
 					List<WebElement> childs = driver_board.findElements(By.xpath("//div[@id='xb-matrix']/div[2]/div"));
-				
+					//String a = driver_board.findElement(By.xpath("//div[@id='xb-matrix']/div[2]")).getText();; //全情報抽出
+					//System.out.println(a);
+									
 					TempBoardInfo.BuyIndex=0;
 					TempBoardInfo.SellIndex=0;
 					j = 0;
@@ -577,7 +582,7 @@ public class BoardAttributeExtraction extends Thread{ // 定期截取情報
 					AttributeWriteTemp = AttributeWriteTemp+"	"+TempBoardInfo.Price;
 						
 					//------------------------日経平均情報更新----------------------------------------
-					TempBoardInfo.Market = driver_attribute.findElement(By.xpath("//div[@id='index-ticker']/div[2]/div/ul/li/span[1]")).getText();
+					TempBoardInfo.Market = driver_attribute.findElement(By.xpath("//*[@id='index-ticker']/div[2]/ul/li[1]/p/span[1]")).getText();
 					AttributeWriteTemp = AttributeWriteTemp+"	"+TempBoardInfo.Market;
 					
 					//------------------------2016出来高情報更新----------------------------------------

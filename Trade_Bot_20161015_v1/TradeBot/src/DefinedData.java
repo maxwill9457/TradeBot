@@ -1,5 +1,10 @@
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openqa.selenium.WebElement;
+
 
 
 public class DefinedData extends Thread{
@@ -10,7 +15,6 @@ public class DefinedData extends Thread{
 
 	public class BoardInfo{
 
-		
 		int DataNumber = 0;
 		int PreDataNumber = 0;
 		String  Date;  //システム日付
@@ -38,40 +42,63 @@ public class DefinedData extends Thread{
 		String AttributeTime;
 		Object BoardInfoLock = new Object();
 	}
+	public class OrderInfo{
+		String StockName="";		//株名
+		String StockSeriesNum="";	//株シリアル番号
+		String Ordertype="";		//発注内容　BUY SELL
+		BigDecimal OrderPrice= new BigDecimal(0);		//発注金額
+		BigDecimal OrderNum= new BigDecimal(0);			//発注数
+		String OrderSeriesNum="";	//発注番号
+		String OrderState="";		//発注状況
+		
+	}
+	public class HoldStockInfo{
+		String StockName ="";
+		String StockSeries="";
+		BigDecimal StockNum = new BigDecimal(0);
+		BigDecimal SumPrice = new BigDecimal(0);
+		BigDecimal PurchasePrice = new BigDecimal(0);
+		BigDecimal PresentPrice = new BigDecimal(0);
+
+		
+	}
+	
+	BigDecimal TradeFee = new BigDecimal(200);
 	
 	public class UserProperty{
 		String USER_NAME ;
 		String PASSWORD ;
 		
-		BigDecimal cash = new BigDecimal(1000000.0);	//所持現金
+		BigDecimal Asset = new BigDecimal(1000000.0);	//所持資産
+		BigDecimal cash = new BigDecimal(1000000.0);	//所持資産
 		BigDecimal NetGain = new BigDecimal(0.0);	//損益
-		BigDecimal cost;			//手数料	
+		BigDecimal cost;
+		
+		List<HoldStockInfo> HoldStockList= new ArrayList<HoldStockInfo>() ;
+		
+		//手数料	
 		String Holded = "NONE"; //NONE  HOLDED 株を所持しているかどうか
-		UserAction UserAction = new UserAction();
-		
-		Object UserPropertyLock = new Object();
-		
-		public class UserAction{
-			String Action = "NONE";	//BUY ,BUY_CHANGE ,BUY_CANCEL,
-			               			//SELL,SELL_CHANGE,SELL_CANCEL,WAIT
-									//NONE
-			String target;
-			BigDecimal Price;      		//購入価格
-			BigDecimal OrderStockNum;		//購入株数
-			double ActionScore;	//行動決定値　0~10 sell 11~90 wait 91~100 buy
-		}
+		UserAction UserAction = new UserAction();	
+		Object UserPropertyLock = new Object();		
 	}
 	
-	public class OrderDetail{
-		String Action;	//BUY ,BUY_CHANGE ,BUY_CANCEL,
-						//SELL,SELL_CHANGE,SELL_CANCEL,WAIT
-						//NONE
+	public class UserAction{
+		boolean NewOrder = false;
+		int ActionIndex =0 ; //アクション指示の番号
+		
+		int ActionNum;
+		String[] Action = {"NONE",""};	//BUY ,BUY_CHANGE ,BUY_CANCEL,
+		               			//SELL,SELL_CHANGE,SELL_CANCEL,WAIT
+								//NONE
 		String target;
-		BigDecimal Price;
-		BigDecimal OrderStockNum;
+		BigDecimal Price= new BigDecimal(0);	      		//購入価格
+		BigDecimal OrderStockNum = new BigDecimal(0);		//購入株数
+		double ActionScore;	//行動決定値　0~10 sell 11~90 wait 91~100 buy
 		
+		Object ActionLock = new Object();
 	}
 	
+
 	public class TradeStatics{
 		
 		int StaticsNumber =1;

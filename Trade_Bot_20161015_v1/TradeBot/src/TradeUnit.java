@@ -21,24 +21,26 @@ import java.util.Calendar;
 public class TradeUnit extends DefinedData  {
 	
 	String ProcessName = "TradUnit";
-	String SimulationMode = "OFFLINE_SIMULATUION";  //ONLINE                real data and operation
-	                        //OPERATION_SIMULATION  real data but no actual operation execute 
-							//OFFLINE_SIMULATUION   時間外検証用
-	                        //TEST_DATA_SIMULATION  test data and no actual operation execute   
+	String SimulationMode ;//ONLINE            		real schedule, real data,  and operation
+							//OPERATION_SIMULATION  real schedule, real data, no actual operation execute 
+							//OFFLINE_SIMULATUION   test schedule,　real data,  no actual operation execute 
+							//TEST_DATA_SIMULATION  test schedule,　test data and no actual operation execute   
+
 
 	String 	TradeUnitState; // Trade operation enable/disable
 	
 	String 	target; // Trade target
+	String 	target_num; // Trade target
 	
 	DefinedData TradeData;
 	WebAccessUnit 	WebAccess; // Trade operation associated with web access 
-	CatchException WebAccess_catchException;
+	CatchException 	WebAccess_catchException;
 	
 	DecisionMakingUnit	DecisionMaking;
-	CatchException DecisionMaking_catchException;
+	CatchException 		DecisionMaking_catchException;
 	
-	TradeOperatorUnit TradeOperator; //交易股票的所有網業開啟 
-	CatchException TradeOperator_catchException;
+	TradeOperatorUnit 	TradeOperator; //交易股票的所有網業開啟 
+	CatchException 		TradeOperator_catchException;
 	
 	BufferedReader FileDataBuffer; 
 	
@@ -57,15 +59,16 @@ public class TradeUnit extends DefinedData  {
 	//int StartTime 	= 0;
 	//int EndTime		= 30000;
 	
-	TradeUnit(String target,String SimulationMode,int Speed, String LogPath,String Infofile){
+	TradeUnit(String target,String target_num,String SimulationMode,int Speed, String LogPath,String Infofile){
 		
 		String SubProcessName = "Initiation";
 		TradeUnitState = "PREPARE";
 		this.target = target; 
+		this.target_num = target_num; 
 		this.Speed = Speed;
 		this.SimulationMode = SimulationMode;
 			
-		System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+this.SimulationMode+"_"+"Activating" );
+		System.out.println( target+ "	"+target_num+"	"+ProcessName+"_"+SubProcessName+"_"+this.SimulationMode+"_"+"Activating" );
 			
 		try{
 			TradeData = new DefinedData();
@@ -95,19 +98,25 @@ public class TradeUnit extends DefinedData  {
 		
 			TradeUnitSchedulor();
 			// web系情報取得
+			/*
 			WebAccess = new WebAccessUnit(	this.target,
+											this.target_num,
 											TradeData.BoardInfo,
 											TradeData.UserProperty,
 											ErrorLog,
 											this.SimulationMode,
 											LogPath,
 											Speed); // create web access
+			
+			
 			WebAccess_catchException = new CatchException();
 			WebAccess.setName("Thread-WebAccess-"+target);
 			WebAccess.setUncaughtExceptionHandler(WebAccess_catchException);
 			WebAccess.start();
+			
 			//情報による行動算出
 			DecisionMaking = new DecisionMakingUnit(	this.target,
+														this.target_num,
 														TradeData.BoardInfo,
 														TradeData.UserProperty,
 														TradeData.TradeStatics,
@@ -120,7 +129,10 @@ public class TradeUnit extends DefinedData  {
 			DecisionMaking.setUncaughtExceptionHandler(DecisionMaking_catchException);
 			DecisionMaking.start();
 			//売買操作用
+			
+			*/
 			TradeOperator = new TradeOperatorUnit(	this.target,
+													this.target_num,
 													TradeData.BoardInfo,
 													TradeData.UserProperty,
 													TradeData.TradeStatics,
@@ -158,16 +170,16 @@ public class TradeUnit extends DefinedData  {
 				if (PreState.equals("READY")){
 					PreState = TradeUnitState;
 					LogTitleInitial();
-					WebAccess.WebAccessUnitState = "START";	
-					DecisionMaking.DecisionMakingUnitState = "START";
+					//WebAccess.WebAccessUnitState = "START";	
+					//DecisionMaking.DecisionMakingUnitState = "START";
 					TradeOperator.TradeOperatorUnitState = "START";
 					
-					System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start" );
+					//System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start" );
 				}
 				
 				//if(Pre_ShijyouState.equals("STANDBY")&&TradeData.ShijyouState.equals("PREPARE")){ //開始のためファイルを作成する
 				//}
-				System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start"  );
+				//System.out.println( target+ "	"+ProcessName+"_"+SimulationMode+"_"+"Start"  );
 				break;
 			case "PAUSE":
 				break;

@@ -9,13 +9,14 @@ public class Main {
 	
 	static int StartTime = 0;
 	static int EndTime   = 240000;
-	static String MeigaraName = "シャープ";
+	static String MeigaraName 	= "リミックスポイント";
+	static String MeigaraNum 	= "3825";
 	static String Infofile =  "D://invest//project//info.txt";
 	static String LogPath = "D://invest//project//log";
-	static String SimulationMode = "OFFLINE_SIMULATUION";  	//ONLINE                real data and operation
-    														//OPERATION_SIMULATION  real data but no actual operation execute 
-															//OFFLINE_SIMULATUION   時間外検証用
-															//TEST_DATA_SIMULATION  test data and no actual operation execute  
+	static String SimulationMode = "OFFLINE_SIMULATUION";  	  	//ONLINE            real schedule, real data,  and operation
+																//OPERATION_SIMULATION  real schedule, real data, no actual operation execute 
+																//OFFLINE_SIMULATUION   test schedule,　real data,  no actual operation execute 
+																//TEST_DATA_SIMULATION  test schedule,　test data and no actual operation execute   
 	static int Speed = 500; //millisecond
 	
 	static String TradeBotState ="STANDBY" ;
@@ -30,11 +31,11 @@ public class Main {
 			}
 		}
 		TradeUnit TradeUnit1;
-		if(SimulationMode.equals("ONLINE")){
-			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"//",Infofile) ; //啟動新的股票交易單元
+		if(SimulationMode.equals("ONLINE")||SimulationMode.equals("OPERATION_SIMULATION")){
+			TradeUnit1 = new TradeUnit(MeigaraName,MeigaraNum,SimulationMode,Speed, LogPath+"//",Infofile) ; //啟動新的股票交易單元
 		}
 		else{
-			TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//",Infofile) ; //啟動新的股票交易單元
+			TradeUnit1 = new TradeUnit(MeigaraName,MeigaraNum,SimulationMode,Speed, LogPath+"test//",Infofile) ; //啟動新的股票交易單元
 		}
 		CatchException TradeUnit1_catchException = new CatchException();
 		TradeUnit1.setName("Thread-TradeUnit1");
@@ -50,7 +51,7 @@ public class Main {
 		while(!TradeBotState.equals("END") ){ //Wait for being triggered 
 			
 			TradeBotSchedulor.TradeBotSchedulor();
-			System.out.println(TradeBotState);
+			//System.out.println(TradeBotState);
 			
 			switch(TradeBotState){
 			
@@ -61,10 +62,10 @@ public class Main {
 				if (TradeUnit1== null){
 
 					if(SimulationMode.equals("ONLINE")){
-						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath,Infofile) ; //啟動新的股票交易單元
+						TradeUnit1 = new TradeUnit(MeigaraName,MeigaraNum,SimulationMode,Speed, LogPath,Infofile) ; //啟動新的股票交易單元
 					}
 					else{
-						TradeUnit1 = new TradeUnit(MeigaraName,SimulationMode,Speed, LogPath+"Test//",Infofile) ; //啟動新的股票交易單元
+						TradeUnit1 = new TradeUnit(MeigaraName,MeigaraNum,SimulationMode,Speed, LogPath+"Test//",Infofile) ; //啟動新的股票交易單元
 					}
 					TradeUnit1_catchException = new CatchException();
 					TradeUnit1.setName("Thread-TradeUnit1");
@@ -92,7 +93,7 @@ public class Main {
 			
 				break;
 			case "RUN":
-				System.out.println("Tradebot_run");
+				//System.out.println("Tradebot_run");
 				break;
 			case "FINISH":
 				TradeUnit1.TradeUnitState = "FINISHING";

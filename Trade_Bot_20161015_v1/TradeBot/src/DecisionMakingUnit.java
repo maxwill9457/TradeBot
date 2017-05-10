@@ -30,7 +30,7 @@ public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情�
 	LogUnit DailyLog;
 	LogUnit ErrorLog;
 	
-	DecisionMakingUnit(String target,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode,String LogPath, int Speed){
+	DecisionMakingUnit(String target,String target_num,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode,String LogPath, int Speed){
 		
 		String SubProcessName = "Initiation";
 		DecisionMakingUnitState = "PREPARE";
@@ -45,12 +45,13 @@ public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情�
 		this.TradeStatics = TradeStatics;
 		
 		try{
-			StaticsLog = new LogUnit(LogPath+"statics//", this.target+"_Statics",1); // create statics log file	
+			StaticsLog = new LogUnit(LogPath+"DecisionMakingUnit//statics//", this.target+"_Statics",1); // create statics log file	
 			DailyLog = new LogUnit(LogPath, this.target+"_Daily",0); // create log file to record MindModule result
 			this.ErrorLog = ErrorLog;
 			//ActionDecisionLog = new LogUnit(this.target); // create log file to record ActionDecision result
 		
 			MindModule = new MindModuleUnit(	target,
+												target_num,
 												BoardInfo,
 												UserProperty,
 												TradeStatics,
@@ -102,7 +103,7 @@ public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情�
 				//------------------renew----------------------
 				try{
 					
-					if ( !BoardInfo.Price.equals(null) ){
+					if ( BoardInfo.Price !=null ){
 						//統計量計算
 						StockTreand();
 						MarketTrend();
@@ -116,7 +117,7 @@ public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情�
 								&& !UserProperty.Holded.equals("HOLDED") ){
 								// &&UserProperty.cash >  TradeStatics.PresentPrice ){ //買	すでに購入状態だと購入しない
 								synchronized (UserProperty.UserPropertyLock){
-									UserProperty.UserAction.Action= "BUY";
+									UserProperty.UserAction.Action[0]= "BUY";
 									UserProperty.UserAction.Price = TradeStatics.PresentPrice; //
 									UserProperty.UserAction.OrderStockNum = new BigDecimal(100.0); 
 								}
@@ -126,7 +127,7 @@ public class DecisionMakingUnit extends DefinedData{// 意思決定   Trade情�
 									&& !UserProperty.Holded.equals("NONE")){
 									//){ //買	すでに買い担っていなければ){//売り	
 								synchronized (UserProperty.UserPropertyLock){
-									UserProperty.UserAction.Action= "SELL";
+									UserProperty.UserAction.Action[0]= "SELL";
 									UserProperty.UserAction.Price = TradeStatics.PresentPrice;
 									UserProperty.UserAction.OrderStockNum = new BigDecimal(100.0); 
 								}

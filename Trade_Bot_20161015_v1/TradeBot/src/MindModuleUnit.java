@@ -11,6 +11,7 @@ public class MindModuleUnit extends DefinedData{
 	String SimulationMode;
 	String MindModuleUnitState;
 	String target;
+	String target_num;
 	
 	String TradeAction;
 	
@@ -23,13 +24,13 @@ public class MindModuleUnit extends DefinedData{
 	
 	Random rnd ;
 	
-	MindModuleUnit(String target,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String LogPath,String SimulationMode){
+	MindModuleUnit(String target,String target_num,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String LogPath,String SimulationMode){
 		
 		String SubProcessName = "Initiation";
 		MindModuleUnitState = "PREPARE";
 		this.target = target;
 		
-		MindMoudleLog = new LogUnit(LogPath+"statics//", this.target+"MindModule",1); // create statics log file	
+		MindMoudleLog = new LogUnit(LogPath+"MindModuleUnit//statics//", this.target+"MindModule",1); // create statics log file	
 		this.ErrorLog = ErrorLog;
 		
 		//---------------------------初期設定----------------------------------------

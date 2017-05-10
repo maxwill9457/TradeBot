@@ -13,6 +13,7 @@ public class WebAccessUnit extends DefinedData {
 	
 	String WebAccessUnitState;
 	String target;
+	String target_num;
 	
 	BoardInfo BoardInfo;
 	UserProperty UserProperty;
@@ -29,7 +30,7 @@ public class WebAccessUnit extends DefinedData {
 	LogUnit  ErrorLog;
 	
 	
-	WebAccessUnit(String target, BoardInfo BoardInfo,UserProperty UserProperty, LogUnit ErrorLog,String SimulationMode, String LogPath,int Speed){ //initialization
+	WebAccessUnit(String target,String target_num, BoardInfo BoardInfo,UserProperty UserProperty, LogUnit ErrorLog,String SimulationMode, String LogPath,int Speed){ //initialization
 		//1秒截取數據一次
 		String SubProcessName = "Initiation";
 		WebAccessUnitState = "PREPARE";
@@ -37,6 +38,8 @@ public class WebAccessUnit extends DefinedData {
 		this.SimulationMode = SimulationMode;
 		this.Speed = Speed;
 		this.target = target;
+		this.target = target_num;
+		
 		System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Activating" );
 		
 		this.ErrorLog = ErrorLog;
@@ -56,6 +59,7 @@ public class WebAccessUnit extends DefinedData {
 				
 			}else{
 				TradePageManager = new TradePageManagerUnit_Monex(	target, 
+																	target_num,
 																	BoardInfo,
 																	UserProperty,
 																	this.ErrorLog,
