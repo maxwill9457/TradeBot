@@ -69,8 +69,10 @@ public class DefinedData extends Thread{
 		String USER_NAME ;
 		String PASSWORD ;
 		
-		BigDecimal Asset = new BigDecimal(1000000.0);	//所持資産
-		BigDecimal cash = new BigDecimal(1000000.0);	//所持資産
+		//BigDecimal Asset = new BigDecimal(1000000.0);	//所持資産
+		//BigDecimal cash = new BigDecimal(1000000.0);	//所持資産
+		BigDecimal Asset;	//所持資産
+		BigDecimal cash;	//所持資産
 		BigDecimal NetGain = new BigDecimal(0.0);	//損益
 		BigDecimal cost;
 		
@@ -85,7 +87,6 @@ public class DefinedData extends Thread{
 	public class UserAction{
 		boolean NewOrder = false;
 		int ActionIndex =0 ; //アクション指示の番号
-		
 		int ActionNum;
 		String[] Action = {"NONE",""};	//BUY ,BUY_CHANGE ,BUY_CANCEL,
 		               			//SELL,SELL_CHANGE,SELL_CANCEL,WAIT
@@ -94,7 +95,7 @@ public class DefinedData extends Thread{
 		BigDecimal Price= new BigDecimal(0);	      		//購入価格
 		BigDecimal OrderStockNum = new BigDecimal(0);		//購入株数
 		double ActionScore;	//行動決定値　0~10 sell 11~90 wait 91~100 buy
-		
+		String result;
 		Object ActionLock = new Object();
 	}
 	

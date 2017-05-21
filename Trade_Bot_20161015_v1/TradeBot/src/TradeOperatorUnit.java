@@ -71,6 +71,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 
 	OrderPanelUnit OrderPanelUnit;
 	
+	File HoldStockInfoFile;
+	
 	LogUnit HoldingstockLog;
 	LogUnit TradeOperatorLog; // Command_Index  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
 	LogUnit ErrorLog;
@@ -110,9 +112,13 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		HoldingStockPath = LogPath+"TradeOperatorUnit//HoldingStock//";	
 		
 		TradeOperatorLog = new LogUnit(LogPath+"TradeOperatorUnit//trade//",this.target+"_TradeOperator",0); // create log file
-		HoldingstockLog = new LogUnit(LogPath+"TradeOperatorUnit//trade//",this.target+"HoldingStock",0); // create log file
+		HoldingstockLog = new LogUnit(LogPath+"TradeOperatorUnit//trade//",this.target+"_HoldingStock",0); // create log file
 		
+		//---------------所持株の情報取得----------------------
 		
+		LoadHoldingStockInfoLoader(target , LogPath,UserProperty);
+		
+		//------------------------------------------------	
 		
 		//---------------モニターユニットを生成---------------------
 		this.OrderMonitorUnit = new OrderMonitorUnit(target,target_num,driver_monitor_Order,driver_monitor_Property,UserProperty,TradeStatics,ErrorLog,SimulationMode,LogPath,Speed);
@@ -129,11 +135,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		OrderAgentUnit.setUncaughtExceptionHandler(OrderAgentUnit_catchException);
 		OrderAgentUnit.start();
 		
-		//---------------所持株の情報取得----------------------
-		
-		//LoadHoldingStockInfoLoader(HoldingStockPath);
-		
-		//------------------------------------------------
+
 		
 		
 		TradeOperatorUnitState = "READY";
@@ -175,16 +177,17 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 					
 					//現在の注文状況を確認し、新注文指示に対して行動を決める
 					String TempOrderAgentInstruction = ActionDecision(UserProperty,OrderAgentUnit.OrderAgentAction);
-					//OrderAgentにだす行動指示に対して、残金や操作株数の上限について確認する
-					if (!TempOrderAgentInstruction.equals("NoAction")&&!TempOrderAgentInstruction.equals("Error")){
-						PropertyCheck(TempOrderAgentInstruction,UserProperty.UserAction.Price,target);
-					}
+
 					//金額に問題が無いのでOrderAgentにだす行動指示に出す
 					if (!TempOrderAgentInstruction.equals("NoAction")&&!TempOrderAgentInstruction.equals("Error")){
 						synchronized (UserProperty.UserAction.ActionLock){
 							ActionExec(TempOrderAgentInstruction,UserProperty,OrderAgentUnit.OrderAgentAction); //意思決定からのアクションとオペレータ現在の状態でアクションを決める
 						//OperatorState = "BUYING" "SELLING" /;
 						}
+					}
+					else if(TempOrderAgentInstruction.equals("Error")){
+						OrderAgentUnit.OrderAgentAction.ActionIndex = UserProperty.UserAction.ActionIndex;
+						UserProperty.UserAction.result = "Error";
 					}
 				}
 				else{
@@ -198,7 +201,16 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 				}catch (InterruptedException e){
 				}	
 				if(!UserProperty.HoldStockList.isEmpty()){
-					System.out.println( UserProperty.HoldStockList.get(0).toString());
+					String temp ="";
+					for(int i=0;i<UserProperty.HoldStockList.size();i++){
+						HoldStockInfo tempHoldStockInfo;
+						tempHoldStockInfo = UserProperty.HoldStockList.get(i);//該当所持株情報抽出
+						
+						temp =i+" "+ tempHoldStockInfo.StockName+" "+tempHoldStockInfo.StockSeries +" "+
+								tempHoldStockInfo.StockNum+" "+tempHoldStockInfo.SumPrice+" "+tempHoldStockInfo.PurchasePrice+"\r\n";
+					}
+					
+					System.out.println( temp);
 				}
 				else{
 					System.out.println( "所持株なし");
@@ -241,37 +253,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		//start any web access process 
 	}
 
-	void LoadHoldingStockInfoLoader(String HoldingStockPath) {	
-		//---------------------特定所持株の情報を抽出 ------------------------------------------------------
-		String SubProcessName = "LoadHoldingStockInfoLoader";	
-		try{
-			HoldingStockFileSet = new File(HoldingStockPath);
-			HoldingStockFileList = HoldingStockFileSet.listFiles();  //ディレクトリ配下のすべてのファイルを読み込む
-		    	
-			for (int i = 0; i < HoldingStockFileList.length; i++) {
-				File file = HoldingStockFileList[i];
-		    	System.out.println((i + 1) + ":    " + file);
-			}
-			FileDataBuffer = new BufferedReader(new FileReader(HoldingStockFileList[1])); //9用確認
-		    	
-		}catch(Exception e){
-		  	System.out.println("DataFileLoader error" );
-		   	e.printStackTrace();
-		   	ErrorLogWrite(ProcessName, SubProcessName , e.toString());
-	   }
-		//---------------------特定株のファイル情報のみ取得------------------------------------------
-		
-		
-		
-		
-		
-		//-------------------------------------------------------------------------------------
-		
-	   System.out.println(target+ "	"+ProcessName+"_"+SimulationMode+"_"+"DataFileLoading_Finished" );
-	
-		
-		//---------------------------------------------------------------------------------
-	}
+
 	
 	void AgentStateCheck(String OrderState){ //OrderAgent、MonitorAgentの状態を更新
 		String SubProcessName = "AgentCheck";
@@ -279,9 +261,11 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		
 		if(	OrderState.equals("BUYING")){ // Agentの状態が発注中になったらoperatorの状態を待機状態から購買中に変更
 			if(OperatorState.equals("WAIT_AGENT_BUY") || OperatorState.equals("WAIT_AGENT_BUY_PRICE_CHANGE") ){
+		
 				OperatorState = "BUYING";
 				String Msg = "OperatorState変更"+OperatorState;
 				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+				
 			}
 		}
 		if(OrderState.equals("SELLING")){ // Agentの状態が販売中になったらoperatorの状態を待機状態から販売中に変更
@@ -302,6 +286,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		if( OrderAgentUnit.OrderProcState.equals("FINISHED")){// Agentの注文が完了したら、operatorの状態を初期状態に戻す。
 			OperatorState = "STANDBY";
 			OrderAgentUnit.OrderProcState ="STANDBY";
+			UserProperty.UserAction.result = "Finished";
+			
 			String Msg = "OperatorState変更"+OperatorState;
 			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
 			
@@ -316,11 +302,20 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		if(tempAction.Action[0].equals("BUY")){
 			if(OperatorState.equals("BUYING")){
 				if (OrderAgentAction.Price.compareTo(tempAction.Price) != 0){ 
-				//値段が違うため発注変更
-					String Msg = "UserAction買い中 値段を変更："+ UserProperty.UserAction.Price.toString();
-					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
-					TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-					return "ChangeBuyPrice";
+					if(PropertyCheck("BUY",UserProperty,target)){// 
+						//値段が違うため発注変更
+						String Msg = "UserAction買い中 値段を変更："+ UserProperty.UserAction.Price.toString();
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+						TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+						return "ChangeBuyPrice";
+					}
+					else{
+						String Msg = "値段を変更エラー、残高不足："+ UserProperty.UserAction.Price.toString();
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+						TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+						return "Error";
+					}
+					
 				}
 				else{
 					//金額同様のためアクションなし
@@ -333,18 +328,33 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			}
 			else if(OperatorState.equals("SELLING")){
 				//売りが買いに変更、現在の売りを一旦キャンセルして買う
-				String Msg = "UserAction売り中から買いに変更："+ UserProperty.UserAction.Price.toString();
-				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
-				TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-				return "ChangeOrderSelltoBuy";
-	
+				if(PropertyCheck("BUY",UserProperty,target)){// 
+					String Msg = "UserAction売り中から買いに変更："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+					return "ChangeOrderSelltoBuy";
+				}
+				else{
+					String Msg = "売りに変更エラー、所持株不足："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+					return "Error";
+				}	
 			}
 			else if(OperatorState.equals("STANDBY")){
 				//現在特に行動していないため、そのまま発注
-				String Msg = "UserAction待機中から買いに変更："+ UserProperty.UserAction.Price.toString();
-				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
-				TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-				return "BuyOrder";
+				if(PropertyCheck("BUY",UserProperty,target)){// 
+					String Msg = "UserAction待機中から買いに変更："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+					return "BuyOrder";
+				}
+				else{
+					String Msg = "注文エラー、残高不足："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+					return "Error";	
+				}
 			}
 			else if(OperatorState.equals("WAIT_AGENT_BUYING")||OperatorState.equals("WAIT_AGENT_SELLING")){
 				//待機中なので行動をしない
@@ -361,18 +371,35 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 		else if(tempAction.Action[0].equals("SELL")){
 			if(OperatorState.equals("BUYING")){
 				//売りが買いに変更、現在の発注を一旦キャンセルして売る
-				String Msg = "UserAction買いから売りに変更："+ UserProperty.UserAction.Price.toString();
-				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
-				TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-				return "ChangeOrderBuytoSell";
-			}
-			else if(OperatorState.equals("SELLING")){
-				if (OrderAgentAction.Price.compareTo(tempAction.Price) != 0){ 
-					//値段が違うため発注変更	
+				if(PropertyCheck("SELL",UserProperty,target)){// 
+				
 					String Msg = "UserAction買いから売りに変更："+ UserProperty.UserAction.Price.toString();
 					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
 					TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-					return "ChangeSellPrice";
+					return "ChangeOrderBuytoSell";
+				}
+				else{
+					String Msg = "売りに変更エラー、所持株不足："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+					return "Error";
+				}
+			}
+			else if(OperatorState.equals("SELLING")){
+				if (OrderAgentAction.Price.compareTo(tempAction.Price) != 0){ 
+					//値段が違うため発注変更
+					if(PropertyCheck("SELL",UserProperty,target)){// 
+						String Msg = "UserAction買いから売りに変更："+ UserProperty.UserAction.Price.toString();
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+						TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+						return "ChangeSellPrice";
+					}
+					else{
+						String Msg = "UserAction買いから売りに変更エラー　所持株は無い："+ UserProperty.UserAction.Price.toString();
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+						TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+						return "Error";
+					}
 				}
 				else{
 					//金額同様のためアクションなし
@@ -385,10 +412,19 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			}
 			else if(OperatorState.equals("STANDBY")){
 				//現在特に行動していないため、そのまま発注
-				String Msg = "UserAction待機中から売りに変更："+ UserProperty.UserAction.Price.toString();
-				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
-				TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
-				return "SellOrder";
+				if(PropertyCheck("SELL",UserProperty,target)){// 
+					String Msg = "UserAction待機中から売りに変更："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+					return "SellOrder";
+				}
+				else{
+					String Msg = "UserAction待機中から売りにエラー　所持株は無い："+ UserProperty.UserAction.Price.toString();
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+					return "Error";
+				}
+				
 			}
 			else if(OperatorState.equals("WAIT_AGENT_BUYING")||OperatorState.equals("WAIT_AGENT_SELLING")){
 				//待機中なので行動をしない
@@ -408,30 +444,69 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
 			TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
 			return "Error";
-		}	
+		}
 		
 	}
 	
-	Boolean PropertyCheck(String TempOrderAgentAction,BigDecimal OrderingPrice,String target){//エージェントの実行行動を決定する   OrderingPrice：現在購買中に預かる金額
-		String SubProcessName = "TradeOrder_PropertyCheck ";
+	Boolean PropertyCheck(String UserOrderAction ,UserProperty UserProperty,String target){//エージェントの実行行動を決定する   OrderingPrice：現在購買中に預かる金額
+		String SubProcessName = "PropertyCheck ";
 		
-		switch(TempOrderAgentAction){
-		case "ChangeBuyPrice":
-			break;
-		case "ChangeOrderSelltoBuy":
-			break;
-		case "BuyOrder":
-			break;
-		case "ChangeOrderBuytoSell":
-			break;
-		case "ChangeSellPrice":
-			break;
-		case "SellOrder":
-			break;	
+		switch(UserOrderAction){
+		case "BUY":
+			if ((UserProperty.cash.compareTo(UserProperty.UserAction.Price.multiply(UserProperty.UserAction.OrderStockNum)))>=0){
+				String Msg = "PropertyCheck残高確認："+UserProperty.cash + "必要金額："+ UserProperty.UserAction.Price.multiply(UserProperty.UserAction.OrderStockNum);
+				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+				TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+				return true;
+			}
+			else{
+				String Msg = "PropertyCheck残高不足："+UserProperty.cash + "必要金額："+ UserProperty.UserAction.Price.multiply(UserProperty.UserAction.OrderStockNum);
+				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+				TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+				return false;	
+			}
+		case "SELL":
+			List<HoldStockInfo> tempList = UserProperty.HoldStockList;
+			HoldStockInfo	tempHoldStockInfo;
+			int i=0;
+			int flag = 0;
+			if(!UserProperty.HoldStockList.isEmpty()){//Listになにもないものならエラー対応が必要
+				for(i=0;i<UserProperty.HoldStockList.size();i++){
+		
+					tempHoldStockInfo = UserProperty.HoldStockList.get(i);//該当所持株情報抽出
+					if(tempHoldStockInfo.StockName.equals(target)){ // 一致する所持株確認
+						if (tempHoldStockInfo.StockNum.compareTo(UserProperty.UserAction.OrderStockNum)>=0){
+							String Msg = "PropertyCheck持ち株数確認："+tempHoldStockInfo.StockNum + "必要株数："+ UserProperty.UserAction.OrderStockNum;
+							System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+							TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
+							flag++;//所持株が売却株数より多いのでOK
+						}
+						else{//所持株が売却株数より少ないのでNG
+							String Msg = "PropertyCheck持ち株数不足："+tempHoldStockInfo.StockNum + "必要株数："+ UserProperty.UserAction.OrderStockNum;
+							System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+							TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+							return false;
+						}
+					}		
+				}
+				if (flag ==0){
+					String Msg = "PropertyCheck持ち株数確認できない："+target;
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+					TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+					return false; //対象所持株は無い
+				}
+				else{
+					return true;
+				}
+			}
+			else{
+				String Msg = "PropertyCheck持ち株数確認できない："+target;
+				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+Msg );
+				TradeOperatorLogWrite(SubProcessName,"E",Msg,UserProperty);	
+				return false; //所持株は無い
+			}
 		}
-		
-		return true;
-	
+		return false; //想定外結果
 	}
 	
 	void ActionExec(String TempOrderAgentInstruction,UserProperty UserProperty, UserAction OrderAgentAction ){ //意思決定からのアクションとオペレータ現在の状態でアクションを決める
@@ -450,6 +525,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
+			tempAction.result = "Ordering";
 			
 			Msg="買い中OrderAgentに買い金額変更指示："+OrderAgentAction.Price.toString()+"に変更" ;
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
@@ -466,6 +542,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
+			tempAction.result = "Ordering";
 			
 			Msg="売り中OrderAgentに買い変更指示：買い"+OrderAgentAction.Price.toString()+"に変更";
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
@@ -481,6 +558,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
+			tempAction.result = "Ordering";
 			
 			Msg="待機中OrderAgentに買い指示："+OrderAgentAction.Price.toString()+"に変更";
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
@@ -496,7 +574,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
-				
+			tempAction.result = "Ordering";
+			
 			Msg="買い中OrderAgentに売り変更指示："+OrderAgentAction.Price.toString() + "に変更";
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
 			TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);				
@@ -512,6 +591,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
+			tempAction.result = "Ordering";
 			
 			Msg=" SELLINGの状態で新規SELLで新注文値段" +OrderAgentAction.Price.toString()+ "に変更";
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
@@ -527,7 +607,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			OrderAgentAction.Price = tempAction.Price;
 			OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
 			OrderAgentAction.NewOrder = true;
-				
+			tempAction.result = "Ordering";
+			
 			Msg = " 待機状態で新規SELL　　売り値段" +OrderAgentAction.Price.toString()+ "に入る ";
 			System.out.println( OrderAgentAction.ActionIndex + Msg );
 			TradeOperatorLogWrite(SubProcessName,"I",Msg,UserProperty);	
@@ -659,11 +740,13 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 									
 									tempHoldStockInfo.StockNum = tempHoldStockInfo.StockNum.add(OrderInfo.OrderNum); //現有株+購入分
 									tempHoldStockInfo.SumPrice = tempHoldStockInfo.SumPrice.add(OrderInfo.OrderPrice.multiply(OrderInfo.OrderNum)); //現有株総合金額+購入分
-									tempHoldStockInfo.PurchasePrice = tempHoldStockInfo.SumPrice.divide(OrderInfo.OrderNum);
+									tempHoldStockInfo.PurchasePrice = tempHoldStockInfo.SumPrice.divide(tempHoldStockInfo.StockNum,3, BigDecimal.ROUND_HALF_UP);
 			
 									UserProperty.HoldStockList.set(i,tempHoldStockInfo);
+									HoldStockInfoLogWrite( UserProperty);
 									flag++;
 								}
+								
 								
 							}
 						}	
@@ -677,10 +760,13 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 							tempHoldStockInfo.StockName = target;
 							tempHoldStockInfo.StockSeries = target_num;
 							tempHoldStockInfo.StockNum = OrderInfo.OrderNum;
+							
 							tempHoldStockInfo.SumPrice = tempHoldStockInfo.SumPrice.add(OrderInfo.OrderPrice.multiply(OrderInfo.OrderNum)); //総合金額
-							tempHoldStockInfo.PurchasePrice = tempHoldStockInfo.SumPrice.divide(OrderInfo.OrderNum);
+							tempHoldStockInfo.PurchasePrice = tempHoldStockInfo.SumPrice.divide(tempHoldStockInfo.StockNum,3, BigDecimal.ROUND_HALF_UP);
 							
 							UserProperty.HoldStockList.add(tempHoldStockInfo);
+							
+							HoldStockInfoLogWrite( UserProperty);
 						}
 
 					}
@@ -693,18 +779,29 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 								tempHoldStockInfo = UserProperty.HoldStockList.get(i);//該当所持株情報抽出
 								
 								if(tempHoldStockInfo.StockName.equals(OrderInfo.StockName)){ // 一致する所持株確認
-									UserProperty.Asset = UserProperty.Asset.subtract(TradeFee); //手数料の差し引き
+									BigDecimal netgain = (OrderInfo.OrderPrice.subtract(tempHoldStockInfo.PurchasePrice)).multiply(OrderInfo.OrderNum);
+									if (netgain.compareTo(new BigDecimal(0))>0){ //利益がでる場合は所得税
+										BigDecimal tax = 	 netgain.multiply(new BigDecimal("0.200"));
+										netgain = netgain.multiply(new BigDecimal("0.800"));
+										UserProperty.Asset = UserProperty.Asset.subtract(TradeFee).add(netgain); //手数料の差し引き
+									}
+									else{
+										UserProperty.Asset = UserProperty.Asset.subtract(TradeFee).add(netgain); //手数料の差し引き
+									}	
+						
 									UserProperty.cash = UserProperty.cash.add(OrderInfo.OrderPrice.multiply(OrderInfo.OrderNum)).subtract(TradeFee) ;//cash-株価*株数-手数料
 									
 									tempHoldStockInfo.StockNum = tempHoldStockInfo.StockNum.subtract(OrderInfo.OrderNum); //現有株+購入分
-									tempHoldStockInfo.SumPrice = tempHoldStockInfo.PurchasePrice.multiply(OrderInfo.OrderNum); //現有株総合金額+購入分
+									tempHoldStockInfo.SumPrice = tempHoldStockInfo.PurchasePrice.multiply(tempHoldStockInfo.StockNum); //現有株総合金額+購入分
 										
-									if(tempHoldStockInfo.StockNum.equals(0)){
+									BigDecimal value = new BigDecimal("0.0");
+									if(tempHoldStockInfo.StockNum.compareTo(BigDecimal.ZERO)==0){
 										UserProperty.HoldStockList.remove(i); //所持株がなくなるため削除
 									}
 									else{
 										UserProperty.HoldStockList.set(i,tempHoldStockInfo);
 									}
+									HoldStockInfoLogWrite( UserProperty);
 									flag++;
 								}
 							}
@@ -1241,8 +1338,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			
 			}
 			else if(SimulationMode.equals("OFFLINE_SIMULATUION")||SimulationMode.equals("TEST_DATA_SIMULATION")){
-				UserProperty.Asset = new BigDecimal(1000000);
-				UserProperty.cash = new BigDecimal(1000000);
+				//UserProperty.Asset = new BigDecimal(1000000);
+				//UserProperty.cash = new BigDecimal(1000000);
 				
 			}
 			
@@ -1493,6 +1590,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 				UserProperty.UserAction.ActionNum = 1;
 				UserProperty.UserAction.Price = new BigDecimal(price);
 				UserProperty.UserAction.OrderStockNum =  new BigDecimal(100);
+				UserProperty.UserAction.result = "New order";
 				
 				System.out.println(index +"	"+keyNumber );	
 			}
@@ -1550,14 +1648,119 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 	
 	
 		String temp =  D.format(Now) +"	"+target+"	"+SubProcess+"	"+Msg_type +"	"+Msg+"	index:";
-		temp = temp + UserProperty.UserAction.ActionIndex+"	"+UserProperty.UserAction.Action[0]+"	"+OperatorState+"	"+UserProperty.UserAction.Price+"	"+UserProperty.UserAction.OrderStockNum+"\r\n";
+		temp = temp + UserProperty.UserAction.ActionIndex+"	"+UserProperty.UserAction.Action[0]+"	"+OperatorState+"	"+UserProperty.UserAction.Price+"	"+UserProperty.UserAction.OrderStockNum+"	"+UserProperty.UserAction.result + "\r\n";
 		//temp = temp + OrderAgentUnit.OrderAgentAction.ActionIndex+"	"+ OrderAgentUnit.OrderAgentAction.Action[0]+"	"+ OrderAgentUnit.OrderAgentAction.Action[1]+
 		//		"	"+ OrderAgentUnit.OrderAgentAction.Price+"	"+OrderAgentUnit.OrderAgentAction.OrderStockNum+"\r\n";
 		TradeOperatorLog.FileWrite(temp);
 	
 	}
-	
+	void LoadHoldingStockInfoLoader(String target ,String LogPath, UserProperty UserProperty){ //　HoldStockInfolog file 読み込み  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
+		String SubProcessName = "LoadHoldingStockInfoLoader";	
+	    try{
+	    	HoldStockInfoFile = new File(LogPath+"//TradeOperatorUnit//trade//"+target+"_HoldingStock.txt");
+    		FileDataBuffer = new BufferedReader(new FileReader(HoldStockInfoFile)); //9用確認
+	    	Boolean fin = false;
+	    	
+	    	String temp;
+	    	
+	    	while((temp= FileDataBuffer.readLine())!=null){
 
+	    		String[] tempStr = temp.split(" ");
+	    		    		
+	    		if (tempStr.length>1){
+	    			if(tempStr[0].equals("Asset")){
+	    				UserProperty.Asset = new BigDecimal(tempStr[1]);
+	    			}
+	    			if(tempStr[0].equals("Cash")){
+	    				UserProperty.cash = new BigDecimal(tempStr[1]);
+	    			}
+	    			
+	    			if (tempStr[1].equals(target)){
+	    				int flag =0;
+	    				HoldStockInfo tempHoldStockInfo =  new HoldStockInfo();
+					
+	    				if(!UserProperty.HoldStockList.isEmpty()){//Listになにもないのでそのまま追加
+						
+	    					for(int i=0;i<UserProperty.HoldStockList.size();i++){
+							
+	    						tempHoldStockInfo = UserProperty.HoldStockList.get(i);//該当所持株情報抽出
+							
+	    						if(tempHoldStockInfo.StockName.equals(target)){ // 一致する所持株確認							
+	    							tempHoldStockInfo.StockName = tempStr[1];
+	    							tempHoldStockInfo.StockSeries = tempStr[2];
+	    							tempHoldStockInfo.StockNum = new BigDecimal(tempStr[3]);
+	    							tempHoldStockInfo.SumPrice = new BigDecimal(tempStr[4]);
+	    							tempHoldStockInfo.PurchasePrice = new BigDecimal(tempStr[5]);
+	    							
+	    							if(tempHoldStockInfo.StockNum.compareTo(BigDecimal.ZERO)==0){
+										UserProperty.HoldStockList.remove(i); //所持株がなくなるため削除
+									}
+									else{
+										UserProperty.HoldStockList.set(i,tempHoldStockInfo);
+									}
+	    							flag++;
+	    						}	
+	    					}
+	    				}
+	    				if(flag ==0){ //empty OR　リストに所持株情報が無い　新規追加
+												
+	    					tempHoldStockInfo.StockName = tempStr[1];
+	    					tempHoldStockInfo.StockSeries = tempStr[2];
+		    				tempHoldStockInfo.StockNum = new BigDecimal(tempStr[3]);
+		    				tempHoldStockInfo.SumPrice = new BigDecimal(tempStr[4]);
+		    				tempHoldStockInfo.PurchasePrice = new BigDecimal(tempStr[5]);
+	    				
+		    				UserProperty.HoldStockList.add(tempHoldStockInfo);//持ち株リストを追加
+	    				}
+	    			}
+	    		}
+	    	}
+	    }catch(Exception e){
+	   		System.out.println("DataFileLoader error" );
+	   		e.printStackTrace();
+	   		ErrorLogWrite(ProcessName, SubProcessName , e.toString());
+	   	}
+	    System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"DataFileLoading_Finished" );
+	
+	
+	}
+	void HoldStockInfoLogWrite(UserProperty UserProperty){ // HoldStockInfolog file 書き込み  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
+
+		List<HoldStockInfo> tempList = UserProperty.HoldStockList;
+		HoldStockInfo	tempHoldStockInfo;
+		
+		String temp;
+		
+		Calendar rightNow;
+		Date Now = new Date();
+    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+    	rightNow = Calendar.getInstance();
+		Now = rightNow.getTime();
+		
+		temp =  D.format(Now)+"\r\n";
+		temp = temp + "Asset "+ UserProperty.Asset+"\r\n";
+		temp = temp + "Cash "+UserProperty.cash+"\r\n";
+		HoldingstockLog.FileWrite(temp);
+		int i=0;
+		if(!UserProperty.HoldStockList.isEmpty()){//Listになにもないものならエラー対応が必要
+			for(i=0;i<UserProperty.HoldStockList.size();i++){
+	
+				tempHoldStockInfo = tempList.get(i);//該当所持株情報抽出
+					
+				temp =i+1+" "+ tempHoldStockInfo.StockName+" "+tempHoldStockInfo.StockSeries +" "+
+							tempHoldStockInfo.StockNum+" "+tempHoldStockInfo.SumPrice+" "+tempHoldStockInfo.PurchasePrice+"\r\n";
+				HoldingstockLog.FileWrite(temp);
+						
+				}
+		}
+		else{
+			HoldingstockLog.FileWrite( i +" NULL\r\n");
+			
+		}
+		HoldingstockLog.FileWrite("END\r\n");
+		
+	}
+	
 	
 }
 
