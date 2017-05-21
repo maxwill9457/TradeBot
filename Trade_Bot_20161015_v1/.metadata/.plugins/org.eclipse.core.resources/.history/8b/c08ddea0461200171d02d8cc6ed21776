@@ -1,0 +1,1093 @@
+import java.util.*;
+import java.util.List;
+import java.io.File;
+import java.text.*;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxProfile;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+
+
+public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報により、買、維持、売の行動　また価格を決める
+
+	String ProcessName = "TradeOperatorUnit";
+	String SimulationMode;
+	
+	String TradeOperatorUnitState;// TradeOperatorUnitのスレッド状態
+	String OrderAgentUnitState;// TradeOrderAgentのスレッド状態
+	String MonitorAgentUnitState;// TradeMonitorAgentのスレッド状態
+	
+	boolean NewOrder;
+	//UserAction OperatorAction;
+	
+	String OperatorState;// オペレータの状態  BUY SELL CHANCEL STANDBY  
+	String OrderState;//注文状況 BUYING SELLING CHANCELING STANDBY  
+	String MonitorState;//監視状況
+	
+	String target;
+	String target_num;
+	
+
+	String ADDRESS = "https://www.monex.co.jp/Login/00000000/login/ipan_web/hyoji";
+	
+	BoardInfo BoardInfo;
+	UserProperty UserProperty;
+	TradeStatics TradeStatics;
+	
+	FirefoxProfile profile_order 	= new FirefoxProfile(new File("D:\\temp"));  
+	FirefoxProfile profile_monitor 	= new FirefoxProfile(new File("D:\\temp")); 
+	
+	WebDriver driver_order 			= new FirefoxDriver(profile_order);
+	WebDriver driver_monitor 		= new FirefoxDriver(profile_monitor);
+	
+	OrderAgentUnit OrderAgentUnit;
+	CatchException OrderAgentUnit_catchException;
+	
+	OrderMonitorUnit OrderMonitorUnit;
+	CatchException OrderMonitorUnit_catchException;
+	
+	OrderPanelUnit OrderPanelUnit;
+	
+	LogUnit TradeOperatorLog; // Command_Index  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
+	LogUnit OrderAgentLog; 
+	LogUnit  ErrorLog;
+	
+	Date Now = new Date();
+	
+	TradeOperatorUnit(String target,String target_num,BoardInfo BoardInfo, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode,String LogPath, int Speed){
+		
+		String SubProcessName = "Initiation";
+		TradeOperatorUnitState = "PREPARE";
+		System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Activating" );
+		
+		this.SimulationMode = SimulationMode;
+		this.target = target;
+		this.target_num	= target_num;
+		this.ErrorLog = ErrorLog;
+		
+		this.BoardInfo = BoardInfo;
+		this.UserProperty = UserProperty;
+		
+		OrderPanelUnit = new OrderPanelUnit(UserProperty);
+		
+		//-----------OperatorAction 初期化--------------
+		//this.NewOrder = false;
+		//this.OperatorAction = new UserAction();
+		//this.OperatorAction.ActionIndex = 0;
+		//this.OperatorAction.Action[0] = "STANDBY";
+		//this.OperatorAction.Action[1] = "";
+		//this.OperatorAction.target = target;
+		//--------------------------------------------
+				
+		this.OperatorState	= "STANDBY";//オペレータの状態
+		this.OrderState		= "STANDBY";//注文状況
+		this.MonitorState	= "STANDBY";//監視状況
+		
+		try{
+			TradeOperatorLog = new LogUnit(LogPath+"trade/",this.target+"_TradeOperator",0); // create log file
+			Now = new Date();
+		}catch(Exception e){
+			System.out.println( e);
+			ErrorLogWrite(ProcessName,SubProcessName + "TradeOperatorLog", e.toString() );
+		}
+		
+		try{
+			OrderAgentLog = new LogUnit(LogPath+"trade/",this.target+"_OrderAgent",0); // create log file
+			Now = new Date();
+		}catch(Exception e){
+			System.out.println( e);
+			ErrorLogWrite(ProcessName,SubProcessName + "_OrderAgent", e.toString() );
+		}
+		
+		//---------------モニターユニットを生成---------------------
+		this.OrderMonitorUnit = new OrderMonitorUnit(target,target_num,driver_monitor,UserProperty,TradeStatics,ErrorLog,SimulationMode,LogPath,Speed);
+		OrderMonitorUnit_catchException = new CatchException();
+		OrderMonitorUnit.setName("Thread-BoardInfoExtractor-"+target);
+		OrderMonitorUnit.setUncaughtExceptionHandler(OrderMonitorUnit_catchException);
+		OrderMonitorUnit.start();	
+		
+		//---------------購入ユニットを生成---------------------
+		this.OrderAgentUnit = new OrderAgentUnit(target,target_num,driver_order,UserProperty,TradeStatics,ErrorLog,SimulationMode,LogPath,Speed);
+		OrderAgentUnit_catchException = new CatchException();
+		OrderAgentUnit.setName("Thread-BoardInfoExtractor-"+target);
+		OrderAgentUnit.setUncaughtExceptionHandler(OrderAgentUnit_catchException);
+		OrderAgentUnit.start();
+		
+		//-------------------------------------------------
+		TradeOperatorUnitState = "READY";
+		System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Ready" );	
+	}
+	
+	public void run(){ 
+		String SubProcessName = "Main_Loop ";
+		System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Standby" );
+		String PreState = TradeOperatorUnitState;
+		Calendar rightNow;
+		
+		while(!TradeOperatorUnitState.equals("END")){
+			switch(TradeOperatorUnitState){
+			
+			case "READY":		
+				break;	
+			case "START":	
+				if (PreState.equals("READY")){
+					//初回のプロセスの起動に使う
+					PreState = TradeOperatorUnitState;
+					OrderAgentUnit.OrderAgentUnitState ="START";
+					OrderMonitorUnit.MonitorAgentUnitState ="START";
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+				}	
+				
+				SimpleDateFormat D = new SimpleDateFormat("HH:mm:ss.SSS");
+		    	rightNow = Calendar.getInstance();
+				Now = rightNow.getTime();
+				
+				try{
+					Thread.sleep(1000);
+				}catch (InterruptedException e){
+				}	
+			
+				//synchronized (){
+					//AgentCheck();//OrderAgentとMonitorAgentの状態を更新
+				//}
+			
+				synchronized (UserProperty.UserAction.ActionLock){
+					ActionDecision(UserProperty,OrderAgentUnit.OrderAgentAction,OrderAgentUnit.NewOrder); //意思決定からのアクションとオペレータ現在の状態でアクションを決める
+				}
+				
+				//synchronized (OrderAgentUnit.UserProperty.UserAction.ActionLock){
+				//	ActionExec()
+				//	OrderAgentUnit.UserProperty.UserAction =OperatorAction; //ActionをOrderAgentに引き渡す
+				//}
+				
+				//System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+				break;
+			case "PAUSE":
+				//System.out.println( "TradeOperatorUnit PAUSE");
+				break;
+			case "FINISHING":
+				//---------------気配板プロセスの完了待つ-----------------------------	
+				OrderAgentUnit.OrderAgentUnitState = "FINISHING";
+				while(!OrderAgentUnit.OrderAgentUnitState.equals("END")){
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}
+				}
+				OrderMonitorUnit.MonitorAgentUnitState = "FINISHING";
+				while(!OrderMonitorUnit.MonitorAgentUnitState.equals("END")){
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}
+				}
+				//System.out.println( "TradeOperatorUnit FINISH");
+				TradeOperatorUnitState = "END";
+				break;
+			case "ERROR":	
+				//System.out.println( "TradeOperatorUnit ERROR");
+				break;
+				
+			}	
+			try{
+				Thread.sleep(500);
+			}catch (InterruptedException e){
+			}	
+		}		
+		System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+		//start any web access process 
+	}
+	
+
+	void AgentCheck(){ //OrderAgent、MonitorAgentの状態を更新
+		String SubProcessName = "AgentCheck";
+		String Action;
+		
+		OrderState = OrderAgentUnit.OrderState;
+		MonitorState = OrderMonitorUnit.MonitorState;
+		
+	}
+	
+	void ActionDecision(UserProperty UserProperty, UserAction OrderAgentAction ,Boolean NewOrder){ //意思決定からのアクションとオペレータ現在の状態でアクションを決める
+		
+		String SubProcessName = "ActionDecision";
+		
+		UserAction tempAction = UserProperty.UserAction;	
+		
+		if(tempAction.ActionIndex!=OrderAgentAction.ActionIndex){//UserProperty.Actionから更新がある場合、OperatiorActionの判断を行う	
+			System.out.println( tempAction.ActionIndex+"	" +OrderAgentAction.ActionIndex );
+			if(tempAction.Action[0].equals("BUY")){
+				if(OperatorState.equals("BUYING")){
+					if (OrderAgentAction.Price.compareTo(tempAction.Price) != 0){ 
+					//値段が違うため発注変更
+						if (PropertyCheck()){  // 所持現金が足りて、所持株が無い状態
+							OrderAgentAction.Action[0] = "CHANGE";   
+							OrderAgentAction.Action[1] = "";
+							OrderAgentAction.ActionNum =1;
+							OrderAgentAction.ActionIndex = tempAction.ActionIndex;
+							OrderAgentAction.Price = tempAction.Price;
+							OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+							OrderAgentAction.NewOrder = true;//いらないかも
+						
+							TradeOperatorLogWrite("買い中OrderAgentに買い金額変更指示：");					
+							OperatorState = "BUYING";
+							System.out.println( OrderAgentAction.ActionIndex + " BUYINGの状態で新規BUYで新注文値段" +OrderAgentAction.Price + "に変更 "  );
+						}
+					}
+					else{
+						OrderAgentAction.ActionIndex = tempAction.ActionIndex;
+						System.out.println( OrderAgentAction.ActionIndex + " BUYINGの状態で新規BUY　同じ値段" +OrderAgentAction.Price + "なので変更なし " );			
+					}
+				}
+				else if(OperatorState.equals("SELLING")){
+					//買いが売りに変更、現在の発注を一旦キャンセルして売る
+					PropertyCheck();
+					OrderAgentAction.Action[0] = "CHANCEL";
+					OrderAgentAction.Action[1] = "BUY";
+					OrderAgentAction.ActionNum =2;
+					OrderAgentAction.ActionIndex= tempAction.ActionIndex;
+					OrderAgentAction.Price = tempAction.Price;
+					OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+					OrderAgentAction.NewOrder = true;
+					
+					TradeOperatorLogWrite("売り中OrderAgentに買い変更指示：");				
+					OperatorState = "SELLING";
+					System.out.println( OrderAgentAction.ActionIndex + " BUYINGの状態で新規SELL　注文取消　売り値段" +OrderAgentAction.Price + "に入る " );
+				}
+				else if(OperatorState.equals("STANDBY")){
+					//現在特に行動していないため、そのまま発注
+					if (PropertyCheck()){  // 所持現金が足りて、所持株が無い状態		
+						OrderAgentAction.Action[0] = "BUY";
+						OrderAgentAction.Action[1] = "";
+						OrderAgentAction.ActionNum =1;
+						OrderAgentAction.ActionIndex= tempAction.ActionIndex;
+						OrderAgentAction.Price = tempAction.Price;
+						OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+						OrderAgentAction.NewOrder = true;
+					
+						TradeOperatorLogWrite("待機中OrderAgentに買い指示：");				
+						OperatorState = "BUYING";
+						System.out.println( OrderAgentAction.ActionIndex + " 待機状態で新規BUY　　買い値段" +OrderAgentAction.Price + "に入る " );
+					}
+				}
+				else if(OperatorState.equals("BUY")||OperatorState.equals("SELL")){
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+					ErrorLogWrite(ProcessName,SubProcessName,"UserBuy exception Operator state:"+OperatorState);		
+				}
+				else{
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+					ErrorLogWrite(ProcessName,SubProcessName,"UserBuy unknown Operator state:"+OperatorState);
+				}
+			}
+			else if(tempAction.Action[0].equals("SELL")){
+				if(OperatorState.equals("BUYING")){
+					//売りが買いに変更、現在の発注を一旦キャンセルして売る
+					
+					OrderAgentAction.Action[0] = "CHANCEL";
+					OrderAgentAction.Action[1] = "SELL";
+					OrderAgentAction.ActionNum =2;
+					OrderAgentAction.ActionIndex= tempAction.ActionIndex;
+					OrderAgentAction.Price = tempAction.Price;
+					OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+					OrderAgentAction.NewOrder = true;
+					
+					TradeOperatorLogWrite("買い中OrderAgentに売り変更指示：");				
+					OperatorState = "SELLING";
+					System.out.println( OrderAgentAction.ActionIndex + " BUYの状態で新規SELL　注文取消　売り値段" +OrderAgentAction.Price + "に入る " );
+				}
+				else if(OperatorState.equals("SELLING")){
+					if (OrderAgentAction.Price.compareTo(tempAction.Price) != 0){ 
+						//値段が違うため発注変更					
+						OrderAgentAction.Action[0] = "CHANGE";
+						OrderAgentAction.Action[1] = "";
+						OrderAgentAction.ActionNum =1;
+						OrderAgentAction.ActionIndex= tempAction.ActionIndex;
+						OrderAgentAction.Price = tempAction.Price;
+						OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+						OrderAgentAction.NewOrder = true;
+					
+						TradeOperatorLogWrite("売り中OrderAgentに売り金閣変更指示：");			
+						OperatorState = "SELLING";
+						System.out.println( OrderAgentAction.ActionIndex + " SELLINGの状態で新規SELLで新注文値段" +OrderAgentAction.Price + "に変更 " );
+					}
+					else{
+						OperatorState = "SELLING";
+						OrderAgentAction.ActionIndex = tempAction.ActionIndex;
+						System.out.println( OrderAgentAction.ActionIndex + " SELLINGの状態で新規SELL　同じ値段" +OrderAgentAction.Price + "なので変更なし " );
+						
+					}
+				}
+				else if(OperatorState.equals("STANDBY")){
+					//現在特に行動していないため、そのまま発注
+					OrderAgentAction.Action[0] = "SELL";
+					OrderAgentAction.Action[1] = "";
+					OrderAgentAction.ActionNum =1;
+					OrderAgentAction.ActionIndex= tempAction.ActionIndex;
+					OrderAgentAction.Price = tempAction.Price;
+					OrderAgentAction.OrderStockNum = tempAction.OrderStockNum;
+					OrderAgentAction.NewOrder = true;
+					
+					TradeOperatorLogWrite("待機中OrderAgentに売り指示：");	
+					OperatorState = "SELLING";
+					System.out.println( OrderAgentAction.ActionIndex + " 待機状態で新規SELL　　売り値段" +OrderAgentAction.Price + "に入る " );
+				}
+				else if(OperatorState.equals("BUY")||OperatorState.equals("SELL")||OperatorState.equals("CHANCEL")){
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );// 一瞬しかならないステータスのため　一時拾い上げる
+					ErrorLogWrite(ProcessName,SubProcessName,"UserSell exception Operator state:"+OperatorState);	
+				}
+				else{
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+					ErrorLogWrite(ProcessName,SubProcessName,"UserSell exception Operator state:"+OperatorState);	
+				}
+			
+			}else{
+				System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+				ErrorLogWrite(ProcessName,SubProcessName,"unknown UserAction state	"+UserProperty.UserAction);
+			}
+
+			
+		}
+		else{
+			TradeOperatorLogWrite("新注文指示が無い");
+			System.out.println( "Indexの変更がない" );
+		}
+	}
+	Boolean PropertyCheck(){//エージェントの実行行動を決定する
+		String SubProcessName = "TradeOrder_PropertyCheck ";
+		return true;
+		
+		
+	}
+	
+	public class OrderAgentUnit extends DefinedData{
+		String SimulationMode ;
+		String target;   // 注文銘柄
+		String target_num;//注文銘柄株数
+		String OrderAgentUnitState = "STANDBY";
+		String OrderState = "STANDBY";//注文状況
+		
+		LogUnit TradeOrderAgentLog;  // Trade operation log
+		LogUnit ErrorLog;
+		UserProperty UserProperty;
+		
+		OrderInfo OrderInfo;
+		
+		boolean NewOrder;
+		UserAction OrderAgentAction;
+		
+		OrderAgentUnit(String target,String target_num,WebDriver driver_order, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode,String LogPath, int Speed){
+
+			String SubProcessName = "OrderAgent_Initiation";
+			OrderAgentUnitState = "PREPARE";
+			System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Activating" );
+			
+			this.SimulationMode = SimulationMode;
+			this.target = target;
+			this.target_num = target_num;
+			this.ErrorLog = ErrorLog;
+			this.UserProperty = UserProperty;
+			
+			this.NewOrder =false;
+			this.OrderAgentAction = new UserAction();
+			this.OrderInfo = new OrderInfo();
+			
+			TradeOrderPageOpen(driver_order);//株取引ページの用意
+			
+			try{
+				TradeOrderAgentLog = new LogUnit(LogPath+"trade//",this.target+"TradeOrderAgent",0); // create log file
+				Now = new Date();
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+			}
+			OrderAgentUnitState = "READY";
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Ready" );	
+		}
+			
+		public void run(){ 
+			String SubProcessName = "OrderAgent_Main_Loop ";
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Standby" );
+			String PreState = OrderAgentUnitState;
+			Calendar rightNow;
+			
+			while(!OrderAgentUnitState.equals("END")){
+				switch(OrderAgentUnitState){
+				
+				case "READY":
+					
+					break;	
+				case "START":	
+					if (PreState.equals("READY")){
+						//初回のプロセスの起動に使う
+						PreState = OrderAgentUnitState;
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+					}	
+					
+					SimpleDateFormat D = new SimpleDateFormat("HH:mm:ss.SSS");
+			    	rightNow = Calendar.getInstance();
+					Now = rightNow.getTime();
+					
+					try{
+						Thread.sleep(10);
+					}catch (InterruptedException e){
+					}	
+					ChangeCheck();//TradeMonitoringUnitの状態確認
+					//ActionCheck(OrderAgentAction,NewOrder); //エージェントの状態を更新する
+					if(OrderAgentAction.NewOrder){
+						//PropertyCheck();//エージェントの購買力を確認する
+						
+						OrderActionExec(driver_order, OrderAgentAction,OrderInfo);//注文アクションを実行する
+						OrderAgentAction.NewOrder =false;
+					}
+					System.out.println( target+ "	"
+							+ ""+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+					break;
+				case "PAUSE":
+					//System.out.println( "TradeOperatorUnit PAUSE");
+					break;
+				case "FINISHING":
+					//---------------気配板プロセスの完了待つ-----------------------------	
+					/*while(!XXXX.equals("END")){
+						try{
+							Thread.sleep(10);
+						}catch (InterruptedException e){
+						}
+					}*/
+					//System.out.println( "TradeOperatorUnit FINISH");
+					OrderAgentUnitState = "END";
+					break;
+				case "ERROR":	
+					//System.out.println( "TradeOperatorUnit ERROR");
+					break;
+					
+				}	
+				try{
+					Thread.sleep(500);
+				}catch (InterruptedException e){
+				}	
+			}		
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+			//start any web access process 
+		}
+		void TradeOrderPageOpen(WebDriver driver_order){
+			String SubProcessName = "TradeOrder_PageOpen ";
+			driver_order.get(ADDRESS);
+			Login(driver_order, UserProperty.USER_NAME, UserProperty.PASSWORD);	
+			driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+		}	
+		void ChangeCheck(){//TradeMonitoringUnitの状態確認
+			String SubProcessName = "TradeOrder_ChangeCheck ";
+		}
+		/*
+		void ActionCheck(UserAction OrderAgentAction, boolean NewOrder){//エージェントの状態を更新する
+			String SubProcessName = "TradeOrder_ActionCheck ";
+			
+			if(NewOrder){
+				if(OrderAgentAction.Action.equals("BUY")){
+					OrderState = "BUYING";
+					NewOrder =false;
+				}
+				else if(OrderAgentAction.Action.equals("SELL")){
+					OrderState = "SELLING";
+					NewOrder =false;		
+				}
+				else if(OrderAgentAction.Action.equals("CHANGE")){
+					OrderState = "CHANGING";
+					NewOrder =false;		
+				}
+				else if(OrderAgentAction.Action.equals("CHANCLE")){
+					OrderState = "CHANCELLIGN";
+					NewOrder =false;		
+				}
+				else{			
+				}		
+			}	
+		}
+		*/
+
+		void OrderActionExec(WebDriver driver_order, UserAction OrderAction, OrderInfo OrderInfo) {
+			
+			String SubProcessName = "OrderActionExec ";
+			int error;
+			
+			for(int i=0;i<OrderAction.ActionNum;i++){ //Actionの数で複数実行
+				if(OrderAction.Action[i].equals("BUY")){
+					error = BuyActionExec(driver_order, OrderAction, OrderInfo);//注文操作実行
+					if(error == 0){
+						OrderState = "BUYING";
+						
+					}
+					else{
+						OrderState = "ERROR";
+					}	
+				}
+				else if(OrderAction.Action[i].equals("SELL")){
+					error =SellActionExec(driver_order, OrderAction );//売却操作実行
+					if(error == 0){
+						OrderState = "SELLING";
+					}
+					else{
+						OrderState = "ERROR";
+					}
+				}
+				else if(OrderAction.Action[i].equals("CHANGE")){
+					error =OrderChangeExec(driver_order, OrderAction, OrderInfo);//値段変更操作実行
+					if(error == 0){
+						OrderState = "CHANGING";
+					}
+					else{
+						OrderState = "ERROR";
+					}
+				}
+				else if(OrderAction.Action[i].equals("CHANCEL")){
+					error =OrderCancelExec(driver_order, OrderAction);//注文取消操作実行
+					if(error == 0){
+						OrderState = "CHANCELLING";
+					}
+					else{
+						OrderState = "ERROR";
+					}
+				}
+				else if(OrderAction.Action[i].equals("")){
+				
+				}
+				else{
+					System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+					ErrorLogWrite(ProcessName,SubProcessName,"unknown OrderAction state	"+OrderAction.Action[i]);
+				}
+			}
+				
+		}		
+		int BuyActionExec(WebDriver driver_order, UserAction OrderAction,OrderInfo OrderInfo) {	
+			String SubProcessName = "TradeOrder_BuyActionExec ";
+			int returnFlag=0;
+			
+			//注文値段をチェックする必要がある
+			
+
+			
+			//
+			try{
+			//---------------------注文ページに移動し発注する------------------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();//株式取引ページに移動
+				driver_order.findElement(By.xpath("//*[@id='focuson']")).sendKeys(target_num); //株式取引→銘柄記入
+				driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[1]/div[1]/div[1]/div[2]/dl[1]/dd/form/p[2]")).click();;//注文ページに移動
+				driver_order.findElement(By.xpath("//*[@id='orderNominal']")).sendKeys("100"); //買い注文　→株数記載
+				driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/div[1]/table/tbody/tr[5]/td/div[2]/span/label")).click();//買い注文　→　指値
+				driver_order.findElement(By.xpath("//*[@id='idOrderPrc']")).sendKeys(OrderAction.Price.toString()); //買い注文　→金額記載
+			
+			//----------------------------注文実行--------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/div[2]/div/input")).click();//買い注文（次へ）
+				driver_order.findElement(By.xpath("//*[@id='gn_service-lm_buy']/div[7]/div[1]/form/div/div[1]/div[1]/div[2]/div[2]/input")).click();//内容確認　買い実施
+			//-------------------------------------------------------------------------------
+				String temp;
+				
+				OrderInfo.StockName = target;	//株名
+				OrderInfo.StockSeriseNum = //株シリアル番号
+				OrderInfo.Ordertype = "BUY" ;//発注内容　BUY SELL
+				OrderInfo.OrderPrice = OrderAction.Price.toString();//発注金額
+				OrderInfo.OrderNum = "100";//発注数
+				OrderInfo.OrderSeriseNum = driver_order.findElement(By.className("com-block-num")).getText().replace("ご注文番号 ", "");//発注番号を取得
+				
+				//monitorunitに発注状況を確認し更新する
+				OrderInfo.OrderState = "受付済";//発注状況
+				
+				OrderAgentLogWrite("株買い発注済み");
+				
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+				returnFlag = 1;
+			}
+			return returnFlag;
+		}
+		int OrderChangeExec(WebDriver driver_order, UserAction OrderAction, OrderInfo OrderInfo) {	
+			String SubProcessName = "TESTOrderChangeExec ";
+			int returnFlag=0;
+			String OrderInfo_Row;
+			int index=0;
+			int flag = 0;
+			//注文値段をチェックする必要がある
+			
+			//発注文なのに　すでに受け付け済みのものがあって注文変更の対応
+			
+			//チェックするロジックを書く
+			
+			//
+			try{
+			//---------------------注文一覧→注文訂正・取消ページに移動------------------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+				driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧ページに移動
+				driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/dl[2]/dd[1]/span[2]")).click(); //昇順
+				driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[2]/div[1]/input")).click();//配置変換
+				
+				List<WebElement> childs = driver_order.findElements(By.xpath("//*[@id='form01']/table/tbody/tr"));
+				for (WebElement e  : childs){
+					OrderInfo_Row = e.getText();
+					if (index%2 == 1){
+						String[] tempStr;
+						String[] tempInfo = OrderInfo_Row.split("\n");
+					
+						tempStr = tempInfo[4].split(" ");
+						if (tempStr[1].equals(OrderInfo.OrderSeriseNum)){  //注文番号が一致
+							String path = "//*[@id='form01']/table/tbody/tr[" + (index+1) + "]/td[8]/a";
+							driver_order.findElement(By.xpath(path)).click(); //該当注文にクリック
+							flag++ ;
+						}
+
+					}
+					index++;
+				}
+				if(flag==1){
+				//driver_order.findElement(By.xpath("//*[@id='form01']/table/tbody/tr[2]/td[8]/a")).click(); //注文約定一覧　取消/変更クリック　→注文訂正・取消ページに移動
+					//----------------------------注文訂正内容--------------------------------------------
+					driver_order.findElement(By.xpath("//*[@id='tbCorrectCancel']/tbody/tr[7]/td/div/div[2]/div/span[2]/label")).click(); //注文約定一覧　取消/変更クリック
+					driver_order.findElement(By.xpath("//*[@id='idOrderPrc']")).sendKeys(OrderAction.Price.toString()); //買い注文　→金額記載
+			
+				//----------------------------注文実行--------------------------------------------
+					driver_order.findElement(By.xpath("//*[@id='gn_stock-sm_order']/div[7]/div/form/div[1]/div[1]/div[2]/div[1]/input")).click(); //注文訂正・取消ページ　取消実行(次へ)		
+					driver_order.findElement(By.xpath("//*[@id='gn_service-lm_order']/div[7]/div/form/div[2]/div[1]/div[2]/div[2]/input")).click(); //注文訂正確認　実行		
+			
+					OrderAgentLogWrite("注文金額変更済み");
+				}
+				else if(flag ==0){
+					String e = "該当注文が見当たらないが、変更注文を受けている:"+OrderInfo.OrderSeriseNum;
+					System.out.println(e);
+					ErrorLogWrite(ProcessName,SubProcessName, e);
+				}
+				else{
+					String e = "該当注文番号に複数該当:"+OrderInfo.OrderSeriseNum;
+					System.out.println(e);
+					ErrorLogWrite(ProcessName,SubProcessName, e);
+					
+				}
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+				returnFlag = 2;
+			}
+			return returnFlag;
+		}
+		int SellActionExec(WebDriver driver_order, UserAction OrderAction ) {	
+			String SubProcessName = "TradeOrder_SellActionExec ";
+			int returnFlag=0;
+			
+			//注文値段をチェックする必要がある
+			
+			//チェックするロジックを書く
+			
+			//
+			try{
+			//---------------------注文ページに移動し発注する------------------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();//株式取引ページに移動
+			//driver_order.findElement(By.xpath("//*[@id='focuson']")).sendKeys(target_num); //株式取引→銘柄記入
+				driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[1]/a")).click();;//保有残高・口座管理ページに移動
+				driver_order.findElement(By.xpath("//*[@id='gn_custAsset-lm_custAsset']/div[7]/div/form[1]/table[1]/tbody/tr[2]/td[8]/a[2]")).click();;//注文 売り注文ページに移動
+			
+				driver_order.findElement(By.xpath("//*[@id='gn_service-lm_amount']/div[6]/div[2]/form/div[1]/div[1]/div[1]/table/tbody/tr[5]/td/div/input")).sendKeys("100"); //売り注文　→株数記載
+				driver_order.findElement(By.xpath("//*[@id='gn_service-lm_amount']/div[6]/div[2]/form/div[1]/div[1]/div[1]/table/tbody/tr[6]/td/div[2]/span/label")).click();//売り注文　→　指値
+				driver_order.findElement(By.xpath("//*[@id='idOrderPrc']")).sendKeys(OrderAction.Price.toString()); //売り注文　→金額記載
+			
+			//----------------------------注文実行--------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='gn_service-lm_amount']/div[6]/div[2]/form/div[1]/div[1]/div[2]/div/input")).click();//売り注文（次へ）
+				driver_order.findElement(By.xpath("//*[@id='gn_service-lm_amount']/div[7]/div[1]/form/div/div[1]/div[1]/div[2]/div[2]/input")).click();//内容確認　売り実施
+			//-------------------------------------------------------------------------------
+				OrderAgentLogWrite("売り注文発注済み");
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+				returnFlag = 3;
+			}
+			return returnFlag;
+		}
+		int OrderCancelExec(WebDriver driver_order, UserAction OrderAction) {	
+			String SubProcessName = "TESTOrderCancelExec ";
+			int returnFlag=0;
+			
+			try{
+			//---------------------注文約定一覧から注文を取消する------------------------------------------------------
+				driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+				driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧に移動
+				driver_order.findElement(By.xpath("//*[@id='form01']/table/tbody/tr[2]/td[8]/a")).click(); //注文約定一覧　取消/変更クリック
+				driver_order.findElement(By.xpath("//*[@id='tbCorrectCancel']/tbody/tr[13]/td/span")).click(); //注文訂正・取消ページ　取消クリック			
+				driver_order.findElement(By.xpath("//*[@id='gn_stock-sm_order']/div[7]/div/form/div[1]/div[1]/div[2]/div[1]/input")).click(); //注文訂正・取消ページ　取消実行(次へ)
+			//------------------------------------------------------------------------------------------------
+				OrderAgentLogWrite("注文キャンセル済み");
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+				returnFlag = 4;
+			}
+			//-------------------------------------------------------------------------------
+			return returnFlag;
+		}
+		
+	}
+	
+	public class OrderMonitorUnit extends DefinedData{
+		String SimulationMode ;
+		String target;
+		String target_num;
+		String MonitorState = "STANDBY";//監視状況
+		String MonitorAgentUnitState;
+		Random rnd ;
+	
+		LogUnit TradeMonitorAgentLog;  // TradeMonitor log
+		LogUnit ErrorLog;
+		
+		String OrderState; // 待機（注文がないとき）、注文中、注文済、取消中、取消済、
+		Boolean NewOrderEntry;
+		Boolean NewSellEntry;
+		Boolean Confirmed;
+		
+		BigDecimal preBuyTrend;
+		BigDecimal preSellTrend;
+		
+		UserProperty UserProperty;
+		TradeStatics DecisionTradeStaticsData;
+		
+		OrderInfo[] OrderInfo = new OrderInfo[10];;
+		
+		OrderMonitorUnit(String target,String target_num,WebDriver driver_monitor, UserProperty UserProperty,TradeStatics TradeStatics,LogUnit ErrorLog,String SimulationMode,String LogPath, int Speed){
+
+			String SubProcessName = "TradeMonitoringUnit_Initiation";
+			this.MonitorAgentUnitState = "PREPARE";
+			System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Activating" );
+			
+			this.SimulationMode = SimulationMode;
+			this.target = target;
+			this.target_num = target_num;
+			this.ErrorLog = ErrorLog;
+			this.UserProperty = UserProperty;
+			this.DecisionTradeStaticsData = TradeStatics;
+			
+			this.NewSellEntry 	= false;
+			this.NewOrderEntry 	= false;
+			this.Confirmed		= false;
+			this.OrderState ="待機";
+			
+			for (int i =0 ; i <10;i++){ //注文一覧情報の保存先
+				this.OrderInfo[i] = new OrderInfo();
+			}
+			
+			TradeMonitorPageOpen(driver_monitor);
+			//Test(driver_monitor);
+			
+			try{
+				TradeMonitorAgentLog = new LogUnit(LogPath+"trade//",this.target+"TradeMonitorAgent",0); // create log file
+				Now = new Date();
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+			}
+			MonitorAgentUnitState = "READY";
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Ready" );	
+		}	
+		public void run(){ 
+			String SubProcessName = "TradeMonitoringUnit_MainLoop ";
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Standby" );
+			String PreState = MonitorAgentUnitState;
+			Calendar rightNow;
+			
+			while(!MonitorAgentUnitState.equals("END")){
+				switch(MonitorAgentUnitState){
+				
+				case "READY":
+					
+					break;	
+				case "START":	
+					if (PreState.equals("READY")){
+						//初回のプロセスの起動に使う
+						PreState = MonitorAgentUnitState;
+						System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+					}	
+					
+					SimpleDateFormat D = new SimpleDateFormat("HH:mm:ss.SSS");
+			    	rightNow = Calendar.getInstance();
+					Now = rightNow.getTime();
+					
+					OrderCheck();
+					/*
+					if(NewSellEntry || NewOrderEntry){
+						OrderCheck();//注文が追加されているかどうかを確認
+						if(Confirmed){ //新規注文の追加が確認できた
+							NewSellEntry 	=	false;
+							NewOrderEntry 	= 	false;
+						}
+					}
+					if(Confirmed){// 注文が入った後の状態確認
+						if( preBuyTrend.equals(DecisionTradeStaticsData.BuyTrend) ||preSellTrend.equals(DecisionTradeStaticsData.SellTrend)){//注文があるときのみ更新して確認する
+							StateCheck();//注文の状態を確認する
+							preBuyTrend 	=	DecisionTradeStaticsData.BuyTrend;  //注文状態を更新
+							preSellTrend 	= 	DecisionTradeStaticsData.SellTrend;//注文状態を更新
+						}
+					}
+					*/
+					
+					try{
+						Thread.sleep(100);
+					}catch (InterruptedException e){
+					}
+					
+					System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Start");
+					break;
+				case "PAUSE":
+					//System.out.println( "TradeOperatorUnit PAUSE");
+					break;
+				case "FINISHING":
+					//---------------気配板プロセスの完了待つ-----------------------------	
+					/*while(!XXXX.equals("END")){
+						try{
+							Thread.sleep(10);
+						}catch (InterruptedException e){
+						}
+					}*/
+					//System.out.println( "TradeOperatorUnit FINISH");
+					MonitorAgentUnitState = "END";
+					break;
+				case "ERROR":	
+					//System.out.println( "TradeOperatorUnit ERROR");
+					break;
+					
+				}	
+				try{
+					Thread.sleep(500);
+				}catch (InterruptedException e){
+				}	
+			}		
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"End" );
+			//start any web access process 
+		}	
+		void TradeMonitorPageOpen(WebDriver driver_monitor){
+			String SubProcessName = "TradeMonitor_PageOpen ";
+			driver_monitor.get(ADDRESS);
+			Login(driver_monitor, UserProperty.USER_NAME, UserProperty.PASSWORD);	
+			driver_monitor.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+			driver_monitor.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧に移動
+			
+			
+		}
+
+		void OrderCheck(){//TradeMonitoringUnitの状態確認
+			String SubProcessName = "TradeMonitor_OrderCheck ";
+			driver_monitor.findElement(By.xpath("//*[@id='form01']/p[1]/a")).click();
+			driver_monitor.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/dl[2]/dd[1]/span[2]")).click(); //昇順
+			driver_monitor.findElement(By.xpath("//*[@id='form01']/div[3]/div[2]/div[1]/input")).click();//配置変換
+			
+			String OrderInfo_title;
+			String OrderInfo_Row;
+			int index=0;
+			
+			
+			List<WebElement> childs = driver_monitor.findElements(By.xpath("//*[@id='form01']/table/tbody/tr"));
+			try{
+				for (WebElement e  : childs)
+				{
+					OrderInfo_Row = e.getText();
+					if (index%2 == 1){
+						//OrderInfo_title = driver_monitor.findElement(By.xpath("//*[@id='form01']/table/tbody/tr[1]")).getText();
+						//OrderInfo_Row = driver_monitor.findElement(By.xpath("//*[@id='form01']/table/tbody/tr[2]")).getText();
+						String[] tempStr;
+						String[] tempInfo = OrderInfo_Row.split("\n");
+					
+						int tempIndex = (index-1)/2;
+					
+						OrderInfo[tempIndex].StockName = tempInfo[0]; //銘柄名
+					
+						tempStr = tempInfo[1].split(" "); 
+						OrderInfo[tempIndex].StockSeriseNum  = tempStr[0]; //銘柄番号
+					
+						tempStr = tempInfo[3].split(" "); 
+						OrderInfo[tempIndex].Ordertype =  tempStr[0]; //売買
+						tempStr[1] = tempStr[1].replace("株", "");
+						OrderInfo[tempIndex].OrderNum =  tempStr[1];  //株数
+					
+						tempStr = tempInfo[4].split(" ");
+						tempStr[0] = tempStr[0].replace(",", "");
+						tempStr[0] = tempStr[0].replace("円", "");
+						OrderInfo[tempIndex].OrderPrice = tempStr[0]; //価格
+						OrderInfo[tempIndex].OrderSeriseNum = tempStr[1].replace("ご注文番号 ", ""); //注文番号　//変更する項目か分からない
+						OrderInfo[tempIndex].OrderState = tempInfo[7]; //注文状態
+					
+					}
+					index++;
+				}
+				System.out.println(OrderInfo[0].OrderNum+"	"+OrderInfo[0].OrderSeriseNum+"	"+OrderInfo[0].OrderState);
+			}catch(Exception e){
+				System.out.println( e);
+				ErrorLogWrite(ProcessName,SubProcessName, e.toString() );
+			}
+				
+				//System.out.println(OrderInfo_title);
+				//System.out.println(OrderInfo_Row);
+				
+				//新しい注文に対する対応状況を確認するロジック
+		}	
+		public void TradeMonitorLogWrite(){
+			String SubProcessName = "TradeMonitorLogWrite";
+	    	Calendar rightNow;
+	    	Date Now = new Date();
+	    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
+	    	rightNow = Calendar.getInstance();
+			Now = rightNow.getTime();
+			
+			//String temp = TradeStatics.StaticsNumber +"	"+ BoardInfo.DataNumber+"	"+D.format(Now)+"	"; 
+			//temp =temp + UserProperty.UserAction.ActionScore+"	";	
+			//temp  = temp + "\r\n";
+			//TradeMonitorAgentLog.FileWrite(temp);	
+			
+		}				
+	}
+	
+	public class OrderPanelUnit extends JFrame {
+		private static final long serialVersionUID = 1L;
+		JPanel contentPane = new JPanel();
+		BorderLayout borderLayout1 = new BorderLayout();
+		JTextField result = new JTextField(""); //計算結果を表示するテキストフィールド
+		UserProperty UserProperty;
+		
+		int index =0; 
+		
+		OrderPanelUnit(UserProperty UserProperty){ //初期化
+
+			String SubProcessName = "OrderPanelUnit_Initiation";
+			MonitorAgentUnitState = "PREPARE";
+			System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Activating" );
+		
+			this.UserProperty = UserProperty;
+
+			contentPane.setLayout(borderLayout1);
+			this.setSize(new Dimension(250, 300));
+			this.setTitle("電子式卓上計算機");
+			this.setContentPane(contentPane);
+
+			contentPane.add(result, BorderLayout.NORTH); //テキストフィールドを配置
+
+			JPanel keyPanel = new JPanel(); //ボタンを配置するパネルを用意
+			keyPanel.setLayout(new GridLayout(5, 1)); //4行4列のGridLayoutにする
+			contentPane.add(keyPanel, BorderLayout.CENTER);
+
+			keyPanel.add(new NumberButton("Buy 253","BUY",index, 253)); //ボタンをレイアウトにはめこんでいく
+			keyPanel.add(new NumberButton("Buy 254","BUY",index, 254));
+			keyPanel.add(new NumberButton("Sell 255","SELL",index, 255));
+			keyPanel.add(new NumberButton("Sell 256","SELL",index, 256));
+			//keyPanel.add(new CancelButton("Cancel","Cancel"));
+	
+			
+			
+			contentPane.add(new JButton("C"), BorderLayout.SOUTH);//Cボタンを配置する
+			this.setVisible(true);
+
+			MonitorAgentUnitState = "READY";
+			System.out.println(target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"Ready" );	
+		}
+		public class NumberButton extends JButton implements ActionListener {
+			private static final long serialVersionUID = 1L;	
+			String command;
+			double price;
+			
+			public NumberButton(String keyTop,String command ,int index,double price) {
+				super(keyTop); //JButtonクラスのコンストラクタを呼び出す
+				this.command = command;
+				this.price = price;
+				this.addActionListener(this); //このボタンにアクションイベントのリスナを設定
+			}
+
+			public void actionPerformed(ActionEvent evt) {
+				String keyNumber = this.getText(); //ボタンの名前を取り出す
+				index++;
+				UserProperty.UserAction.NewOrder =true;
+				UserProperty.UserAction.ActionIndex = index;
+				UserProperty.UserAction.Action[0] = command;
+				UserProperty.UserAction.ActionNum = 1;
+				UserProperty.UserAction.Price = new BigDecimal(price);
+				UserProperty.UserAction.OrderStockNum =  new BigDecimal(100);
+				
+				System.out.println(index +"	"+keyNumber );	
+			}
+		}
+		public class CancelButton extends JButton implements ActionListener {
+			private static final long serialVersionUID = 1L;
+			String command;
+
+			
+			public CancelButton(String keyTop, String command) {
+				super(keyTop); //JButtonクラスのコンストラクタを呼び出す
+				this.command = command;
+				this.addActionListener(this); //このボタンにアクションイベントのリスナを設定
+			}
+
+			public void actionPerformed(ActionEvent evt) {
+				String keyNumber = this.getText(); //ボタンの名前を取り出す
+				index++;
+				UserProperty.UserAction.NewOrder =true;
+				UserProperty.UserAction.ActionIndex = index;
+				UserProperty.UserAction.Action[0] = command;
+//				UserProperty.UserAction.ActionNum = 1;
+				
+				System.out.println(keyNumber);	
+			}
+		}
+}
+	
+	void Login(WebDriver driver,String user_name, String password) {	
+		//---------------------Login ------------------------------------------------------
+			driver.findElement(By.name("loginid")).sendKeys(user_name);
+			driver.findElement(By.name("passwd")).sendKeys(password);
+			driver.findElement(By.className("text-button")).click();
+		//---------------------------------------------------------------------------------
+	}
+	
+	void ErrorLogWrite(String ProccessName, String SubProcessName , String Error){
+		Calendar rightNow;
+		Date Now = new Date();
+    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
+    	rightNow = Calendar.getInstance();
+		Now = rightNow.getTime();
+		
+		String temp =  D.format(Now) + "	" + ProccessName + "	" + SubProcessName + "	" +Error +"\r\n";
+		ErrorLog.FileWrite(temp);
+		
+	}
+
+	void TradeOperatorLogWrite(String Msg){ //create statics log file  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
+		Calendar rightNow;
+		Date Now = new Date();
+    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
+    	rightNow = Calendar.getInstance();
+		Now = rightNow.getTime();
+	
+	
+		String temp =  D.format(Now) +"	"+target+"	";
+		temp = temp + UserProperty.UserAction.ActionIndex+"	"+UserProperty.UserAction.Action[0]+"	"+OperatorState+"	"+UserProperty.UserAction.Price+"	"+UserProperty.UserAction.OrderStockNum+"	"+Msg+"\r\n";
+		//temp = temp + OrderAgentUnit.OrderAgentAction.ActionIndex+"	"+ OrderAgentUnit.OrderAgentAction.Action[0]+"	"+ OrderAgentUnit.OrderAgentAction.Action[1]+
+		//		"	"+ OrderAgentUnit.OrderAgentAction.Price+"	"+OrderAgentUnit.OrderAgentAction.OrderStockNum+"\r\n";
+		TradeOperatorLog.FileWrite(temp);
+	
+	}
+	
+	void OrderAgentLogWrite(String Msg){ //create statics log file  時間　Userアクション	値段	Operatorアクション	値段　OperatorState	
+		Calendar rightNow;
+		Date Now = new Date();
+		SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
+		rightNow = Calendar.getInstance();
+		Now = rightNow.getTime();
+		String temp =  D.format(Now) +"	"+target+"	";
+		temp = temp+UserProperty.UserAction.ActionIndex+"	"+UserProperty.UserAction.Action[0]+"	"+UserProperty.UserAction.Price+"	";
+		temp = temp+OrderAgentUnit.OrderAgentAction.ActionIndex+"	"+ OrderAgentUnit.OrderAgentAction.Action[0]+"	"+ OrderAgentUnit.OrderAgentAction.Action[1]+"	"+ OrderAgentUnit.OrderAgentAction.Price+"	"+"	"+OperatorState;
+		OrderAgentLog.FileWrite(temp);
+		
+	}
+	
+}
+

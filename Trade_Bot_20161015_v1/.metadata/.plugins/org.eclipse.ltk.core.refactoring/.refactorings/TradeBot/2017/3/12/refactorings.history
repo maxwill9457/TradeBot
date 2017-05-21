@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Move element &apos;&apos; to &apos;TradeOperatorUnit.AgentCheck()&apos;&#x0D;&#x0A;- Original project: &apos;TradeBot&apos;&#x0D;&#x0A;- Destination element: &apos;TradeOperatorUnit.AgentCheck()&apos;&#x0D;&#x0A;- Original element: &apos;TradeOperatorUnit.TradeOperatorUnit(...)&apos;&#x0D;&#x0A;- Textual move only&#x0D;&#x0A;- Update references to refactored element" description="Move method" destination="/src&lt;{TradeOperatorUnit.java[TradeOperatorUnit~AgentCheck" element1="/src&lt;{TradeOperatorUnit.java[TradeOperatorUnit~TradeOperatorUnit~QString;~QString;~QBoardInfo;~QUserProperty;~QTradeStatics;~QLogUnit;~QString;~QString;~I" flags="589830" id="org.eclipse.jdt.ui.move" members="1" policy="org.eclipse.jdt.ui.moveMembers" stamp="1490029623537" version="1.0"/>
+</session>
