@@ -21,7 +21,7 @@ public class ShowMeigaraTable extends JFrame{
 	
 	
 	private String[] TimeInfo = {"A","B","C"};
-	String[][] Infotable = new String[27][3];
+	private String[][] Infotable = new String[27][3];
 	//-----------------------------
 
 	//public static void main(String[] args){
@@ -63,7 +63,7 @@ public class ShowMeigaraTable extends JFrame{
 				}
 			}
 		
-			this.model= new DefaultTableModel(26,3);
+			this.model= new DefaultTableModel(Infotable,TimeInfo);
 			this.table = new JTable(model);
 
 			this.panel = new JPanel();
@@ -88,7 +88,7 @@ public class ShowMeigaraTable extends JFrame{
 		//Date.set
 		try{
 		  //Infotable = {{Date,Time},{Shijyo,ShijyoNetChange},{Price,NetChangePercent}};
-			
+			//String[][] temptable = new String[27][3];
 			Infotable[0][0] = "時間";
 			Infotable[0][1] = Date;
 			Infotable[0][2] = Time;
@@ -106,13 +106,13 @@ public class ShowMeigaraTable extends JFrame{
 					Infotable[x+4][y] = tabledata[x][y];
 				}
 			}
-	
+		
 			model.setDataVector(Infotable, TimeInfo);
-				
+			table = new JTable(model);	
 			table.repaint();
 		
 		//t_table.updateUI();
-		}catch (Exception e){
+		}catch (NullPointerException e){
 			System.out.println( e+"_tradeboard");
 			ErrorLogWrite(ProcessName, SubProcessName , e.toString());
 		}

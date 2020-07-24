@@ -27,8 +27,8 @@ public class TradePageManagerUnit_Monex extends DefinedData{
 	String target;
 	String target_num;
 	
-	FirefoxProfile profile_board = new FirefoxProfile(new File("D:\\temp"));  
-	FirefoxProfile profile_attribute = new FirefoxProfile(new File("D:\\temp")); 
+	FirefoxProfile profile_board = new FirefoxProfile(new File("D:\\invest\\project\\firefox_profile"));  
+	FirefoxProfile profile_attribute = new FirefoxProfile(new File("D:\\invest\\project\\firefox_profile")); 
 	//profile.setPreference("general.useragent.override", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)");
 	//profile.setPreference("intl.accept_languages", "en-us, en");
 	WebDriver driver_board 		= new FirefoxDriver(profile_board);
@@ -582,7 +582,7 @@ public class BoardAttributeExtraction extends Thread{ // 定期截取情報
 					AttributeWriteTemp = AttributeWriteTemp+"	"+TempBoardInfo.Price;
 						
 					//------------------------日経平均情報更新----------------------------------------
-					TempBoardInfo.Market = driver_attribute.findElement(By.xpath("//*[@id='index-ticker']/div[2]/ul/li[1]/p/span[1]")).getText();
+					TempBoardInfo.Market = driver_attribute.findElement(By.xpath("//*[@id='index-ticker']/div[2]/div/ul/li[1]/p/span[1]")).getText();
 					AttributeWriteTemp = AttributeWriteTemp+"	"+TempBoardInfo.Market;
 					
 					//------------------------2016出来高情報更新----------------------------------------

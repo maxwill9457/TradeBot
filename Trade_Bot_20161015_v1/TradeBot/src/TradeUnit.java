@@ -98,7 +98,7 @@ public class TradeUnit extends DefinedData  {
 		
 			TradeUnitSchedulor();
 			// web系情報取得
-			/*
+			
 			WebAccess = new WebAccessUnit(	this.target,
 											this.target_num,
 											TradeData.BoardInfo,
@@ -130,7 +130,7 @@ public class TradeUnit extends DefinedData  {
 			DecisionMaking.start();
 			//売買操作用
 			
-			*/
+			
 			TradeOperator = new TradeOperatorUnit(	this.target,
 													this.target_num,
 													TradeData.BoardInfo,
@@ -170,7 +170,7 @@ public class TradeUnit extends DefinedData  {
 				if (PreState.equals("READY")){
 					PreState = TradeUnitState;
 					LogTitleInitial();
-					//WebAccess.WebAccessUnitState = "START";	
+					WebAccess.WebAccessUnitState = "START";	
 					//DecisionMaking.DecisionMakingUnitState = "START";
 					TradeOperator.TradeOperatorUnitState = "START";
 					
@@ -242,7 +242,8 @@ public class TradeUnit extends DefinedData  {
 				TradeData.BoardInfo.MarketStatus ="STANDBY";
 				System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"TradeUnitAlarm_Ready");
 			}
-			else if(indextime >= 80000 && indextime<=90000){ // Trade preparing 8:00 to 9:00   Record-Active Action-Standy
+			else if(indextime >= StartTime && indextime<=90000){ // 指定時間から開始させるための一時設定
+			//else if(indextime >= 80000 && indextime<=90000){ // Trade preparing 8:00 to 9:00   Record-Active Action-Standy
 				//TradeUnitState = "START";	
 				TradeData.BoardInfo.MarketStatus ="PREPARE";
 				System.out.println( target+ "	"+ProcessName+"_"+SubProcessName+"_"+SimulationMode+"_"+"TradeUnitAlarm_Start");
@@ -315,7 +316,7 @@ public class TradeUnit extends DefinedData  {
 	
 	class WriteLog extends TimerTask {  //output log per one second
 	    public void run() {
-	    	String SubProcessName = "TimeStar_Loop ";
+	    	String SubProcessName = "TimeStart_Loop ";
 	    	Calendar rightNow;
 	    	Date Now = new Date();
 	    	SimpleDateFormat D = new SimpleDateFormat("yyyy/MM/dd	HH:mm:ss.SSS");
@@ -332,7 +333,7 @@ public class TradeUnit extends DefinedData  {
 				if(!TradeData.BoardInfo.MarketStatus.equals("STANDBY")&&!TradeData.BoardInfo.MarketStatus.equals("TRADE_FINISHED")){
 					if(TradeData.BoardInfo.DataNumber != TradeData.BoardInfo.PreDataNumber){
 						String temp;
-						System.out.println( "\n"+ target+"	BoardInfo" );
+						//System.out.println( "\n"+ target+"	BoardInfo" );
 						synchronized (BoardInfo.BoardInfoLock){
 							temp = TradeData.BoardInfo.DataNumber+"	"+D.format(Now)+"	";
 							temp = temp +TradeData.BoardInfo.Market+"	"+TradeData.BoardInfo.MarketNetChange+"	"

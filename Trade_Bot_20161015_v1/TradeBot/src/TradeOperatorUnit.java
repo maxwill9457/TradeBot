@@ -50,9 +50,9 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 	UserProperty UserProperty;
 	TradeStatics TradeStatics;
 	
-	FirefoxProfile profile_order 			= new FirefoxProfile(new File("D:\\temp"));  
-	FirefoxProfile profile_monitor_Order 	= new FirefoxProfile(new File("D:\\temp")); 
-	FirefoxProfile profile_monitor_Property = new FirefoxProfile(new File("D:\\temp")); 
+	FirefoxProfile profile_order 			= new FirefoxProfile(new File("D:\\invest\\project\\firefox_profile"));  
+	FirefoxProfile profile_monitor_Order 	= new FirefoxProfile(new File("D:\\invest\\project\\firefox_profile")); 
+	FirefoxProfile profile_monitor_Property = new FirefoxProfile(new File("D:\\invest\\project\\firefox_profile")); 
 	
 	WebDriver driver_order 				= new FirefoxDriver(profile_order);
 	WebDriver driver_monitor_Order 		= new FirefoxDriver(profile_monitor_Order);
@@ -716,7 +716,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			String SubProcessName = "TradeOrder_PageOpen ";
 			driver_order.get(ADDRESS);
 			Login(driver_order, UserProperty.USER_NAME, UserProperty.PASSWORD);	
-			driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+			driver_order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();;//株式取引ページに移動
 		}	
 		
 		OrderInfo ChangeCheck(OrderInfo OrderInfo,OrderInfo[] MonitorOrderInfoList,UserProperty UserProperty){//TradeMonitoringUnitの状態確認
@@ -920,7 +920,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 				try{
 					
 			//---------------------注文ページに移動し発注する------------------------------------------------------
-					driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();//株式取引ページに移動
+					driver_order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();//株式取引ページに移動
 					driver_order.findElement(By.xpath("//*[@id='focuson']")).sendKeys(target_num); //株式取引→銘柄記入
 					driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[1]/div[1]/div[1]/div[2]/dl[1]/dd/form/p[2]")).click();;//注文ページに移動
 					driver_order.findElement(By.xpath("//*[@id='orderNominal']")).sendKeys("100"); //買い注文　→株数記載
@@ -1009,8 +1009,8 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			if(SimulationMode.equals("ONLINE")||SimulationMode.equals("OPERATION_SIMULATION")){ 
 				try{
 				//---------------------注文一覧→注文訂正・取消ページに移動------------------------------------------------------
-					driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
-					driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧ページに移動
+					driver_order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();//株式取引ページに移動
+					driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();//株式取引注文約定一覧ページに移動
 					driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/dl[2]/dd[1]/span[2]")).click(); //昇順
 					driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[2]/div[1]/input")).click();//配置変換
 					
@@ -1098,7 +1098,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			if(SimulationMode.equals("ONLINE")||SimulationMode.equals("OPERATION_SIMULATION")){ 
 				try{
 				//---------------------注文ページに移動し発注する------------------------------------------------------
-					driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();//株式取引ページに移動
+					driver_order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();//株式取引ページに移動
 				//driver_order.findElement(By.xpath("//*[@id='focuson']")).sendKeys(target_num); //株式取引→銘柄記入
 					driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[1]/a")).click();;//保有残高・口座管理ページに移動
 					driver_order.findElement(By.xpath("//*[@id='gn_custAsset-lm_custAsset']/div[7]/div/form[1]/table[1]/tbody/tr[2]/td[8]/a[2]")).click();;//注文 売り注文ページに移動
@@ -1175,7 +1175,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			
 			if(SimulationMode.equals("ONLINE")||SimulationMode.equals("OPERATION_SIMULATION")){ 
 				try{
-					driver_order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+					driver_order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();;//株式取引ページに移動
 					driver_order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧ページに移動
 					driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[1]/dl[2]/dd[1]/span[2]")).click(); //昇順
 					driver_order.findElement(By.xpath("//*[@id='form01']/div[3]/div[2]/div[1]/input")).click();//配置変換
@@ -1402,7 +1402,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			String SubProcessName = "TradeMonitorOrderPageOpen ";
 			driver_monitor_Order.get(ADDRESS);
 			Login(driver_monitor_Order, UserProperty.USER_NAME, UserProperty.PASSWORD);	
-			driver_monitor_Order.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+			driver_monitor_Order.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();;//株式取引ページに移動
 			driver_monitor_Order.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[2]/a")).click();;//株式取引注文約定一覧に移動
 			
 		}
@@ -1410,7 +1410,7 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			String SubProcessName = "TradeMonitorPropertyPageOpen ";
 			driver_monitor_Property.get(ADDRESS);
 			Login(driver_monitor_Property, UserProperty.USER_NAME, UserProperty.PASSWORD);	
-			driver_monitor_Property.findElement(By.xpath("//*[@id='global-navi']/div[2]/ul/li[2]/a")).click();;//株式取引ページに移動
+			driver_monitor_Property.findElement(By.xpath("//*[@id='navi-header-sub']/div[1]/ul/li[1]/a")).click();;//株式取引ページに移動
 			driver_monitor_Property.findElement(By.xpath("//*[@id='gn_service-']/div[6]/div[2]/div/div/div[2]/div[1]/ul/li[1]/a")).click();;//保有残高・売却に移動
 				
 		}
@@ -1555,10 +1555,10 @@ public class TradeOperatorUnit extends DefinedData{// 意思決定   Trade情報
 			keyPanel.setLayout(new GridLayout(5, 1)); //4行4列のGridLayoutにする
 			contentPane.add(keyPanel, BorderLayout.CENTER);
 
-			keyPanel.add(new NumberButton("Buy 253","BUY",index, 253)); //ボタンをレイアウトにはめこんでいく
-			keyPanel.add(new NumberButton("Buy 254","BUY",index, 254));
-			keyPanel.add(new NumberButton("Sell 255","SELL",index, 255));
-			keyPanel.add(new NumberButton("Sell 256","SELL",index, 256));
+			keyPanel.add(new NumberButton("Buy 134","BUY",index, 134)); //ボタンをレイアウトにはめこんでいく
+			keyPanel.add(new NumberButton("Buy 136","BUY",index, 136));
+			keyPanel.add(new NumberButton("Sell 134","SELL",index, 134));
+			keyPanel.add(new NumberButton("Sell 136","SELL",index, 136));
 			//keyPanel.add(new CancelButton("Cancel","Cancel"));
 	
 			

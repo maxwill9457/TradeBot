@@ -2,9 +2,9 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import org.openqa.selenium.WebElement;
-
 
 
 public class DefinedData extends Thread{
@@ -105,35 +105,59 @@ public class DefinedData extends Thread{
 		int StaticsNumber =1;
 		BigDecimal [][]	Board = new BigDecimal[23][3];
 		
-		BigDecimal PriceOpen;
+		
+		BigDecimal PriceOpen; //当日ベース株価
 		BigDecimal PresentPrice; // 現在の株価格
 		double PFactor = 0.99;
 		double PriceChange_Online_Avg = 0.0; // 株価格の分析点数
 		String PriceTrend;   // 株の動向の分類
 		
-		BigDecimal MarketOpen;
-		BigDecimal PresentMarket; // 現在の日経平均
+		BigDecimal MarketOpen;//当日ベース日経平均
+		BigDecimal PresentMarket; // 現在の日経平均		
 		double MFactor = 0.999;
 		double MarketChange_Online_Avg = 0.0;      // 日経平均の分析点数
 		String MarketTrend;        // 日経平均動向の分類
 		
+		
 		BigDecimal PresentPriceChange; // 現在の株価上昇落下値
+		BigDecimal PriceChangePercentage; //株価変化率	
 		BigDecimal PresentMarketChange; //現在の日経平均上昇落下値
+		BigDecimal MarketChangePercentage;//日経平均変化率
+		
 		
 		BigDecimal Dekitaka= new BigDecimal(0.0);
 		BigDecimal Dekitaka_Change ;
 		BigDecimal VWAP;
-			
+		
+		
 		BigDecimal BuyTrend; // 気配板での買い気配
 		BigDecimal SellTrend; //気配板での売り気配
+		
 		
 		BigDecimal NariyukiBuy; //取引低支持の成り行き買
 		BigDecimal NariyukiSell; //取引低支持の成り行き売り
 		BigDecimal OverSell;
 		BigDecimal UnderBuy;
 		
+		
+		TimeSeriesArray PriceChangePercentageSeries;
+		TimeSeriesArray MarketChangePercentageSeries;
+		TimeSeriesArray BuySellRateSeries;
+		
+		
+		
 		BigDecimal HighestPrice= new BigDecimal(0.0);
 		BigDecimal LowestPrice= new BigDecimal(0.0);
+		
+		
+		public class TimeSeriesArray{
+			
+			ArrayList<Integer> StaticsNumber = new ArrayList<Integer>();
+			ArrayList<BigDecimal> list = new ArrayList<BigDecimal>();
+
+			int index = 0;	
+		}
+		
 		
 		public class StackInvironment{
 		
