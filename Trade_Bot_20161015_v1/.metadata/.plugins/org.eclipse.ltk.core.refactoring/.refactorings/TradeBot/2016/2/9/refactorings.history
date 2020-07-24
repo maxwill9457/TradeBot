@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Rename type &apos;ShowMeigaraTrend&apos; to &apos;ShowMeigaraTimechart&apos;&#x0D;&#x0A;- Original project: &apos;TradeBot&apos;&#x0D;&#x0A;- Original element: &apos;ShowMeigaraTrend&apos;&#x0D;&#x0A;- Renamed element: &apos;ShowMeigaraTimechart&apos;&#x0D;&#x0A;- Update references to refactored element&#x0D;&#x0A;- Update textual occurrences in comments and strings" description="Rename type &apos;ShowMeigaraTrend&apos;" flags="589830" id="org.eclipse.jdt.ui.rename.type" input="/src&lt;{ShowMeigaraTrend.java[ShowMeigaraTrend" matchStrategy="1" name="ShowMeigaraTimechart" qualified="false" references="true" similarDeclarations="false" stamp="1456278531329" textual="false" version="1.0"/>
-</session>
